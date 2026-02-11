@@ -7,3 +7,5 @@ export * from './flows/loginFlow';
 export * from './flows/searchFlow';
 export * from './flows/cartFlow';
 export * from './flows/checkoutFlow';
+export * from './orchestrators/searchOrchestrator';
+export * from './orchestrators/checkoutOrchestrator';

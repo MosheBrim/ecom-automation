@@ -113,7 +113,7 @@ export async function completeCheckout(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error(`Checkout failed: ${errorMessage}`);
+    log.error(`Checkout failed: ${errorMessage}`, { duration: Date.now() - startTime });
 
     const screenshotPath = await takeCheckoutProof(page, requestId);
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ interface ResultDisplayProps {
 }
 
 export function ResultDisplay({ result, product, onReset, error }: ResultDisplayProps) {
+  const [imageError, setImageError] = useState(false);
   const isSuccess = result.order !== null || result.screenshotPath !== undefined;
 
   return (
@@ -67,21 +69,19 @@ export function ResultDisplay({ result, product, onReset, error }: ResultDisplay
               Screenshot Proof
             </div>
             <div className="border rounded-lg overflow-hidden bg-muted">
-              <img
-                src={`/api/screenshots/${result.screenshotPath.split('/').pop()}`}
-                alt="Checkout proof"
-                className="w-full h-auto"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.parentElement!.innerHTML = `
-                    <div class="p-8 text-center text-muted-foreground">
-                      <p>Screenshot saved at:</p>
-                      <code class="text-xs">${result.screenshotPath}</code>
-                    </div>
-                  `;
-                }}
-              />
+              {imageError ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <p>Screenshot saved at:</p>
+                  <code className="text-xs">{result.screenshotPath}</code>
+                </div>
+              ) : (
+                <img
+                  src={`/api/screenshots/${result.screenshotPath.split('/').pop()}`}
+                  alt="Checkout proof"
+                  className="w-full h-auto"
+                  onError={() => setImageError(true)}
+                />
+              )}
             </div>
           </div>
         )}

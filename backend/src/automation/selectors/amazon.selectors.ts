@@ -6,6 +6,7 @@ export const AMAZON_SELECTORS = {
     SIGN_IN_BUTTON: '#signInSubmit',
     CAPTCHA_IMAGE: '#auth-captcha-image',
     ERROR_MESSAGE: '#auth-error-message-box',
+    ACCOUNT_LIST: '#nav-link-accountList-nav-line-1',
   },
 
   SEARCH: {

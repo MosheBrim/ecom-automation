@@ -64,7 +64,7 @@ export async function loginToAmazon(
 }
 
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  const accountElement = await page.$('#nav-link-accountList-nav-line-1');
+  const accountElement = await page.$(AMAZON_SELECTORS.LOGIN.ACCOUNT_LIST);
   if (!accountElement) return false;
 
   const text = await accountElement.textContent();

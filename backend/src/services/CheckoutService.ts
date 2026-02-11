@@ -1,10 +1,7 @@
-import { Page, BrowserContext } from 'playwright';
 import { CheckoutRequest, Product } from '../domain/validators/schemas';
 import { Order, OrderBuilder } from '../domain/models/Order';
-import { browserFactory } from '../automation/factories/BrowserFactory';
-import { ensureLoggedIn } from '../automation/flows/loginFlow';
-import { addToCart, proceedToCheckout } from '../automation/flows/cartFlow';
-import { completeCheckout, CheckoutResult } from '../automation/flows/checkoutFlow';
+import { executeCheckoutFlow } from '../automation/orchestrators/checkoutOrchestrator';
+import { CheckoutResult } from '../automation/flows/checkoutFlow';
 import { createLogger } from '../utils/logger';
 import { statusService } from './StatusService';
 import { generateRequestId } from '../utils/generateRequestId';
@@ -23,8 +20,6 @@ export class CheckoutService {
     dryRun: boolean = true
   ): Promise<CheckoutServiceResult> {
     const log = createLogger(requestId);
-    let page: Page | null = null;
-    let context: BrowserContext | null = null;
 
     const credentials = {
       email: process.env.AMAZON_EMAIL ?? '',
@@ -33,38 +28,15 @@ export class CheckoutService {
 
     try {
       statusService.createStatus(requestId);
-      statusService.updateStatus(requestId, 'opening_browser', 5);
 
-      const browserResult = await browserFactory.createPage();
-      page = browserResult.page;
-      context = browserResult.context;
-
-      statusService.updateStatus(requestId, 'logging_in', 15);
-      log.info('Ensuring logged in');
-
-      await ensureLoggedIn(page, credentials, requestId);
-
-      statusService.updateStatus(requestId, 'adding_to_cart', 35);
-      log.info('Adding product to cart', { productId: product.id });
-
-      await addToCart(page, product.productUrl, checkoutRequest.quantity, requestId);
-
-      statusService.updateStatus(requestId, 'checkout', 55);
-      log.info('Proceeding to checkout');
-
-      await proceedToCheckout(page, requestId);
-
-      statusService.updateStatus(requestId, 'filling_shipping', 70);
-      log.info('Filling shipping information');
-
-      const checkoutResult = await completeCheckout(
-        page,
-        checkoutRequest.shippingAddress,
+      const checkoutResult = await executeCheckoutFlow({
+        checkoutRequest,
+        product,
+        credentials,
         requestId,
-        dryRun
-      );
-
-      statusService.updateStatus(requestId, 'taking_screenshot', 90);
+        dryRun,
+        onProgress: (step, progress) => statusService.updateStatus(requestId, step, progress),
+      });
 
       let order: Order | null = null;
       if (checkoutResult.success) {
@@ -99,10 +71,6 @@ export class CheckoutService {
       log.error(`Checkout failed: ${errorMessage}`);
       statusService.failStatus(requestId, errorMessage);
       throw error;
-    } finally {
-      if (context) {
-        await context.close();
-      }
     }
   }
 }

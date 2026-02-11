@@ -73,7 +73,7 @@ export async function verifyCartContents(
     }
   }
 
-  log.error('Product not found in cart');
+  log.error('Product not found in cart', { duration: Date.now() - startTime });
   return false;
 }
 
