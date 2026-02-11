@@ -3,21 +3,21 @@ node_modules/
 .pnp/
 .pnp.js
 
-# Build outputs
+# Build
 dist/
 build/
 .next/
 out/
 
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*.local
 
 # Logs
-logs/
+logs/*
+!logs/.gitkeep
 *.log
-npm-debug.log*
 
 # IDE
 .idea/
@@ -39,3 +39,6 @@ test-results/
 # Misc
 *.tsbuildinfo
 .eslintcache
+
+# Screenshots - keep proof, ignore debug
+screenshots/debug/

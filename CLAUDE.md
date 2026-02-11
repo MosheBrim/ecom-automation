@@ -2,137 +2,150 @@
 
 ## Project Context
 
-E-commerce automation project for Amazon. Searches products, scrapes data, adds to cart, and completes checkout with screenshot proof.
+E-commerce automation for Amazon: Search → Scrape → Cart → Checkout → Screenshot proof.
+
+---
 
 ## Architecture
 
 ```
-Frontend (React)  →  API (Express)  →  Automation (Playwright)
-     ↓                    ↓                    ↓
-   UI only          Business Logic       Browser Control
+Frontend (React)  →  API (Express)  →  Services  →  Automation (Playwright)
 ```
 
-### Layer Responsibilities
+### Layer Rules
 
 | Layer | Location | Does | Does NOT |
 |-------|----------|------|----------|
-| UI Components | `frontend/src/components/` | Render UI, receive props | API calls, business logic |
-| UI Hooks | `frontend/src/hooks/` | State, handlers, API calls | UI rendering |
-| API Routes | `backend/src/api/` | HTTP handling, validation | Business logic |
-| Services | `backend/src/services/` | Business logic, orchestration | HTTP, Playwright direct |
-| Automation | `backend/src/automation/` | Playwright browser control | Business decisions |
-| Domain | `backend/src/domain/` | Types, models, validation | Side effects |
+| Components | `frontend/src/components/` | Render UI only | API calls, logic |
+| Hooks | `frontend/src/hooks/` | State, API calls | UI rendering |
+| API Routes | `backend/src/api/` | HTTP, validation | Business logic |
+| Services | `backend/src/services/` | Business logic | HTTP, Playwright |
+| Automation | `backend/src/automation/` | Browser control | Business decisions |
+| Domain | `backend/src/domain/` | Types, models | Side effects |
 
-## Code Style
+---
 
-### General Rules
-- TypeScript strict mode - no `any`
-- No comments - use clear naming instead
-- English only - no i18n needed
-- Simple over clever
+## Design Patterns to Use
 
-### Component Pattern
-```tsx
-// Component: UI only
-function SearchForm({ query, onSubmit, isLoading }: SearchFormProps) {
-  return <form>...</form>;
-}
+- **Strategy** → Product selection (cheapest/first/custom)
+- **Factory** → Browser instance creation
+- **Repository** → Data access abstraction
+- **Builder** → Complex object construction (Order)
 
-// Hook: All logic
-function useSearchForm() {
-  const [query, setQuery] = useState('');
-  const mutation = useSearchMutation();
-  return { query, setQuery, onSubmit: mutation.mutate, isLoading: mutation.isPending };
-}
-```
+---
 
-### Naming Conventions
+## Code Rules
 
-| Type | Convention | Example |
-|------|------------|---------|
+### No Comments - Self-Documenting Code
+- **No comments in code** - use clear naming instead
+- Variable/function names should explain what they do
+- If code needs a comment to be understood, refactor it
+
+### Config & MD Files
+- Comments only when absolutely necessary
+- Keep comments short and professional
+- No explanatory paragraphs - just essential info
+
+### TypeScript
+- Strict mode - **no `any`**
+- Explicit return types on all functions
+- Zod for runtime validation
+
+### Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
 | Components | PascalCase | `SearchForm.tsx` |
-| Hooks | use + PascalCase | `useSearchForm.ts` |
-| Services | PascalCase + Service | `SearchService.ts` |
-| Types | PascalCase | `Product.ts` |
-| Utils | camelCase | `formatPrice.ts` |
-| Constants | SCREAMING_SNAKE | `MAX_RETRIES` |
+| Hooks | usePascalCase | `useSearch.ts` |
+| Services | PascalCaseService | `SearchService.ts` |
+| Selectors | SCREAMING_SNAKE | `AMAZON_SELECTORS` |
 
-### File Structure
-```
-Feature/
-├── FeatureName.tsx      # Component (UI only)
-├── useFeatureName.ts    # Hook (logic)
-└── index.ts             # Barrel export
-```
+### DRY - Extract When Used Twice
+- `withRetry()` → Retry logic
+- `withTimeout()` → Timeout wrapper
+- `formatPrice()` → Price formatting
+- `createLogger()` → Logger with requestId
 
-## Automation Rules
+---
 
-### No Sleep - Explicit Waits Only
+## Automation Rules (35% of grade)
+
+### No Sleep - EVER
 ```ts
-// BAD
+// ❌ FORBIDDEN
 await page.waitForTimeout(3000);
 
-// GOOD
-await page.waitForSelector('.product-card', { state: 'visible', timeout: 5000 });
+// ✅ REQUIRED
+await page.waitForSelector('.selector', { state: 'visible', timeout: 10000 });
 ```
 
 ### Selectors in Dedicated Files
-```ts
-// automation/selectors/amazon.selectors.ts
-export const AMAZON_SELECTORS = {
-  searchBox: '#twotabsearchtextbox',
-  searchButton: '#nav-search-submit-button',
-  productCard: '[data-component-type="s-search-result"]',
-};
-```
+All selectors in `automation/selectors/` - never inline.
 
-### Retry Pattern
-```ts
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries = 3,
-  delay = 1000
-): Promise<T> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (attempt === maxRetries) throw error;
-      await new Promise(r => setTimeout(r, delay));
-    }
-  }
-  throw new Error('Retry failed');
-}
-```
+### Retry with Backoff
+All fragile operations use `withRetry()` utility.
+
+---
 
 ## Logging (Observability)
 
-Every operation must log:
+Every log MUST include:
+- `requestId` - Trace identifier
+- `step` - Current step name
+- `duration` - Time in ms
+- `status` - success/error
+
+---
+
+## API Response Format
+
 ```ts
-logger.info('Step completed', {
-  requestId: 'uuid',
-  step: 'search',
-  duration: 1234,
-  status: 'success'
-});
+// Success
+{ success: true, data: {...}, meta: { requestId, timestamp } }
+
+// Error
+{ success: false, error: { code, message }, meta: { requestId, timestamp } }
 ```
+
+---
 
 ## Security
 
-- NEVER hardcode credentials
-- Use `.env` for secrets
-- `.env` is in `.gitignore`
-- Use `.env.example` for documentation
+- Credentials in `.env` only
+- `.env` in `.gitignore`
+- Validate all input with Zod
+
+---
 
 ## Testing
 
-- Unit tests: Domain logic (price normalization, product selection)
-- E2E test: Full flow must produce screenshot in `screenshots/`
+### Naming
+- Files: `{FileName}.test.ts`
+- Cases: `should [behavior] when [condition]`
 
-## Before Committing
+### Coverage Priority
+- Services: 80%
+- Utils: 90%
+- Domain: 70%
+
+### E2E Must Include
+- Full flow: Search → Cart → Checkout
+- Screenshot saved to `screenshots/`
+
+---
+
+## Error Handling
+
+- Custom errors extend `AppError` base class
+- Errors include: `code`, `message`, `step`, `isRetryable`
+- API returns consistent error format
+
+---
+
+## Before Commit
 
 - [ ] No `any` types
 - [ ] No `console.log` (use logger)
 - [ ] No hardcoded values
-- [ ] Types are explicit
+- [ ] No duplicate code
 - [ ] Tests pass
