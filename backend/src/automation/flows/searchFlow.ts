@@ -8,7 +8,7 @@ import { scrapeSearchResults } from '../actions/scrapeActions';
 
 export async function executeSearch(
   page: Page,
-  searchRequest: SearchRequest,
+  searchRequest: Omit<SearchRequest, 'selectionStrategy'>,
   requestId: string
 ): Promise<Product[]> {
   const log = createLogger(requestId).withStep('search');

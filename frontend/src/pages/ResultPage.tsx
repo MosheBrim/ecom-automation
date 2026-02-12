@@ -37,11 +37,11 @@ export function ResultPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className={`rounded-xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
-        isSuccess ? 'border-green-500 bg-green-500/5' : 'border-destructive bg-destructive/5'
+        isSuccess ? 'border-success bg-success/5' : 'border-destructive bg-destructive/5'
       }`}>
-        <div className={`rounded-full p-3 ${isSuccess ? 'bg-green-500/10' : 'bg-destructive/10'}`}>
+        <div className={`rounded-full p-3 ${isSuccess ? 'bg-success/10' : 'bg-destructive/10'}`}>
           {isSuccess
-            ? <CheckCircle className="h-8 w-8 text-green-500" />
+            ? <CheckCircle className="h-8 w-8 text-success" />
             : <XCircle className="h-8 w-8 text-destructive" />
           }
         </div>
@@ -131,7 +131,7 @@ export function ResultPage() {
                 <div className="space-y-2">
                   {status.steps.map((step, index) => (
                     <div key={index} className="flex items-center gap-3 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                         <CheckCircle className="h-3 w-3 text-white" />
                       </div>
                       <span className="flex-1">{getStepLabel(step.step)}</span>

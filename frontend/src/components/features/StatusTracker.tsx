@@ -36,7 +36,7 @@ export function StatusTracker({ status }: StatusTrackerProps) {
           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ease-out rounded-full ${
-                isFailed ? 'bg-destructive' : isCompleted ? 'bg-green-500' : 'bg-primary'
+                isFailed ? 'bg-destructive' : isCompleted ? 'bg-success' : 'bg-primary'
               }`}
               style={{ width: `${status.progress}%` }}
             />
@@ -46,8 +46,8 @@ export function StatusTracker({ status }: StatusTrackerProps) {
         <div className="flex items-center gap-2 text-sm pt-1">
           {isCompleted && (
             <>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-green-500 font-medium">Completed</span>
+              <CheckCircle className="h-4 w-4 text-success" />
+              <span className="text-success font-medium">Completed</span>
             </>
           )}
           {isFailed && (

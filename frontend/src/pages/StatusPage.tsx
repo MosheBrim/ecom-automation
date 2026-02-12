@@ -93,16 +93,16 @@ export function StatusPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className={`rounded-xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
-        isCompleted ? 'border-green-500 bg-green-500/5'
+        isCompleted ? 'border-success bg-success/5'
           : isFailed ? 'border-destructive bg-destructive/5'
             : 'border-primary bg-primary/5'
       }`}>
         <div className={`rounded-full p-3 ${
-          isCompleted ? 'bg-green-500/10'
+          isCompleted ? 'bg-success/10'
             : isFailed ? 'bg-destructive/10'
               : 'bg-primary/10'
         }`}>
-          {isCompleted && <CheckCircle className="h-8 w-8 text-green-500" />}
+          {isCompleted && <CheckCircle className="h-8 w-8 text-success" />}
           {isFailed && <XCircle className="h-8 w-8 text-destructive" />}
           {!isFinished && <Loader2 className="h-8 w-8 text-primary animate-spin" />}
         </div>
@@ -131,7 +131,7 @@ export function StatusPage() {
           <div className="h-3 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ease-out rounded-full ${
-                isFailed ? 'bg-destructive' : isCompleted ? 'bg-green-500' : 'bg-primary'
+                isFailed ? 'bg-destructive' : isCompleted ? 'bg-success' : 'bg-primary'
               }`}
               style={{ width: `${progress}%` }}
             />
@@ -160,7 +160,7 @@ export function StatusPage() {
                     <div
                       className={`
                         w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all
-                        ${stepStatus === 'completed' ? 'bg-green-500 text-white' : ''}
+                        ${stepStatus === 'completed' ? 'bg-success text-white' : ''}
                         ${stepStatus === 'active' ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' : ''}
                         ${stepStatus === 'pending' ? 'bg-muted text-muted-foreground' : ''}
                       `}
@@ -175,7 +175,7 @@ export function StatusPage() {
                     </div>
                     {!isLast && (
                       <div className={`w-0.5 flex-1 min-h-[24px] transition-colors ${
-                        stepStatus === 'completed' ? 'bg-green-500' : 'bg-muted'
+                        stepStatus === 'completed' ? 'bg-success' : 'bg-muted'
                       }`} />
                     )}
                   </div>

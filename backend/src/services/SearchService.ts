@@ -13,7 +13,7 @@ export interface SearchResult {
 
 export class SearchService {
   async search(
-    searchRequest: SearchRequest,
+    searchRequest: Omit<SearchRequest, 'selectionStrategy'>,
     requestId: string,
     selectionStrategy: SelectionStrategyType = 'first'
   ): Promise<SearchResult> {

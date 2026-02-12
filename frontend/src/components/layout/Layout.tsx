@@ -19,15 +19,17 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
+      <header className="bg-primary text-primary-foreground shadow-sm">
         <div className="container py-4">
           <div className="flex items-center justify-between">
             <Link
               to="/"
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
             >
-              <ShoppingBag className="h-6 w-6" />
-              <h1 className="text-xl font-bold">E-Commerce Automation</h1>
+              <div className="p-1.5 bg-white/15 rounded-lg">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight">E-Commerce Automation</h1>
             </Link>
 
             <nav className="flex items-center gap-1">
@@ -40,16 +42,16 @@ export function Layout() {
                   <div key={step.path} className="flex items-center">
                     {index > 0 && (
                       <div
-                        className={`w-8 h-0.5 ${isPast ? 'bg-primary' : 'bg-muted'}`}
+                        className={`w-8 h-0.5 ${isPast ? 'bg-white/60' : 'bg-white/20'}`}
                       />
                     )}
                     <div
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
                         isActive
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-white/20 text-white font-medium'
                           : isPast
-                            ? 'text-primary'
-                            : 'text-muted-foreground'
+                            ? 'text-white/80'
+                            : 'text-white/40'
                       }`}
                     >
                       <Icon className="h-4 w-4" />

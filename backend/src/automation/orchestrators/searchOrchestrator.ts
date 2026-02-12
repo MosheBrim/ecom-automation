@@ -11,7 +11,7 @@ export interface SearchOrchestratorResult {
 export type ProgressCallback = (step: AutomationStep, progress: number) => void;
 
 export async function executeSearchFlow(
-  searchRequest: SearchRequest,
+  searchRequest: Omit<SearchRequest, 'selectionStrategy'>,
   requestId: string,
   onProgress?: ProgressCallback
 ): Promise<SearchOrchestratorResult> {
