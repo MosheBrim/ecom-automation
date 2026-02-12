@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useStatus } from '@/hooks/useStatus';
@@ -8,11 +8,13 @@ import { getStepLabel, formatDuration } from '@/utils/formatters';
 import {
   CheckCircle, XCircle, Loader2, ArrowLeft,
   Globe, LogIn, ShoppingCart, CreditCard, MapPin,
-  Wallet, ClipboardCheck, Camera, Settings,
+  Wallet, ClipboardCheck, Camera, Settings, Timer, Layers,
 } from 'lucide-react';
 import type { AutomationStep, StepRecord } from '@/types';
 
 const AUTO_REDIRECT_DELAY_MS = 1500;
+const RING_RADIUS = 54;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const CHECKOUT_STEPS: AutomationStep[] = [
   'initializing',
@@ -26,16 +28,16 @@ const CHECKOUT_STEPS: AutomationStep[] = [
   'taking_screenshot',
 ];
 
-const STEP_ICONS: Record<string, React.ReactNode> = {
-  initializing: <Settings className="h-4 w-4" />,
-  opening_browser: <Globe className="h-4 w-4" />,
-  logging_in: <LogIn className="h-4 w-4" />,
-  adding_to_cart: <ShoppingCart className="h-4 w-4" />,
-  checkout: <CreditCard className="h-4 w-4" />,
-  filling_shipping: <MapPin className="h-4 w-4" />,
-  filling_payment: <Wallet className="h-4 w-4" />,
-  confirming_order: <ClipboardCheck className="h-4 w-4" />,
-  taking_screenshot: <Camera className="h-4 w-4" />,
+const STEP_ICONS_SMALL: Record<string, React.ReactNode> = {
+  initializing: <Settings className="h-3 w-3" />,
+  opening_browser: <Globe className="h-3 w-3" />,
+  logging_in: <LogIn className="h-3 w-3" />,
+  adding_to_cart: <ShoppingCart className="h-3 w-3" />,
+  checkout: <CreditCard className="h-3 w-3" />,
+  filling_shipping: <MapPin className="h-3 w-3" />,
+  filling_payment: <Wallet className="h-3 w-3" />,
+  confirming_order: <ClipboardCheck className="h-3 w-3" />,
+  taking_screenshot: <Camera className="h-3 w-3" />,
 };
 
 function getStepStatus(
@@ -56,10 +58,36 @@ function getStepDuration(step: AutomationStep, steps: StepRecord[]): number | un
   return steps.find((s) => s.step === step)?.duration;
 }
 
+function useElapsedTime(startedAt: string | undefined, isRunning: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!startedAt || !isRunning) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    const start = new Date(startedAt).getTime();
+    const tick = (): void => setElapsed(Date.now() - start);
+
+    tick();
+    intervalRef.current = setInterval(tick, 100);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [startedAt, isRunning]);
+
+  return elapsed;
+}
+
 export function StatusPage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { status, isCompleted, isFailed, isFinished } = useStatus(requestId ?? null);
+
+  const elapsed = useElapsedTime(
+    status?.startedAt?.toString(),
+    !isFinished && !!status?.startedAt
+  );
 
   useEffect(() => {
     if (!requestId) {
@@ -90,123 +118,185 @@ export function StatusPage() {
     (s) => getStepStatus(s, completedSteps, currentStep) === 'completed'
   ).length;
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className={`rounded-xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
-        isCompleted ? 'border-success bg-success/5'
-          : isFailed ? 'border-destructive bg-destructive/5'
-            : 'border-primary bg-primary/5'
-      }`}>
-        <div className={`rounded-full p-3 ${
-          isCompleted ? 'bg-success/10'
-            : isFailed ? 'bg-destructive/10'
-              : 'bg-primary/10'
-        }`}>
-          {isCompleted && <CheckCircle className="h-8 w-8 text-success" />}
-          {isFailed && <XCircle className="h-8 w-8 text-destructive" />}
-          {!isFinished && <Loader2 className="h-8 w-8 text-primary animate-spin" />}
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">
-            {isCompleted ? 'Checkout Complete' : isFailed ? 'Checkout Failed' : 'Automation Running'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isCompleted
-              ? 'All steps finished successfully'
-              : isFailed
-                ? 'An error occurred during automation'
-                : `Step ${completedCount + 1} of ${CHECKOUT_STEPS.length} — ${getStepLabel(currentStep)}`}
-          </p>
-        </div>
-        <Badge variant={isCompleted ? 'default' : isFailed ? 'destructive' : 'secondary'} className="text-sm px-3 py-1">
-          {isCompleted ? 'Done' : isFailed ? 'Error' : `${progress}%`}
-        </Badge>
-      </div>
+  const strokeOffset = RING_CIRCUMFERENCE * (1 - progress / 100);
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Overall Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-500 ease-out rounded-full ${
-                isFailed ? 'bg-destructive' : isCompleted ? 'bg-success' : 'bg-primary'
-              }`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>{completedCount} of {CHECKOUT_STEPS.length} steps</span>
-            {totalDuration !== null && <span>{formatDuration(totalDuration)}</span>}
+  const ringColor = isCompleted
+    ? 'hsl(var(--success))'
+    : isFailed
+      ? 'hsl(var(--destructive))'
+      : 'hsl(var(--primary))';
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="grid md:grid-cols-[280px,1fr]">
+            <div className={`flex flex-col items-center justify-center p-8 ${
+              isCompleted ? 'bg-success/5' : isFailed ? 'bg-destructive/5' : 'bg-primary/5'
+            }`}>
+              <div className="relative">
+                <svg width="140" height="140" viewBox="0 0 120 120" className="-rotate-90">
+                  <circle
+                    cx="60" cy="60" r={RING_RADIUS}
+                    fill="none"
+                    stroke="hsl(var(--muted))"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="60" cy="60" r={RING_RADIUS}
+                    fill="none"
+                    stroke={ringColor}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    strokeDashoffset={strokeOffset}
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  {isCompleted ? (
+                    <CheckCircle className="h-10 w-10 text-success" />
+                  ) : isFailed ? (
+                    <XCircle className="h-10 w-10 text-destructive" />
+                  ) : (
+                    <>
+                      <span className="text-3xl font-bold tabular-nums">{progress}</span>
+                      <span className="text-xs text-muted-foreground -mt-0.5">percent</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 text-center">
+                <p className="font-semibold text-sm">
+                  {isCompleted ? 'Complete' : isFailed ? 'Failed' : getStepLabel(currentStep)}
+                </p>
+                {!isFinished && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Step {completedCount + 1} of {CHECKOUT_STEPS.length}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 mt-5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Timer className="h-3.5 w-3.5" />
+                  <span className="tabular-nums font-medium">
+                    {totalDuration !== null ? formatDuration(totalDuration) : formatDuration(elapsed)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5" />
+                  <span className="font-medium">{completedCount}/{CHECKOUT_STEPS.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Step Details</h2>
+                <Badge variant={isCompleted ? 'default' : isFailed ? 'destructive' : 'secondary'}>
+                  {isCompleted ? 'Done' : isFailed ? 'Error' : 'Running'}
+                </Badge>
+              </div>
+
+              <div className="space-y-1">
+                {CHECKOUT_STEPS.map((step) => {
+                  const stepStatus = getStepStatus(step, completedSteps, currentStep);
+                  const duration = getStepDuration(step, completedSteps);
+
+                  return (
+                    <div
+                      key={step}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        stepStatus === 'active' ? 'bg-primary/5' : ''
+                      }`}
+                    >
+                      <div
+                        className={`
+                          w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all
+                          ${stepStatus === 'completed' ? 'bg-success text-white' : ''}
+                          ${stepStatus === 'active' ? 'bg-primary text-primary-foreground ring-2 ring-primary/20' : ''}
+                          ${stepStatus === 'pending' ? 'bg-muted text-muted-foreground' : ''}
+                        `}
+                      >
+                        {stepStatus === 'completed' ? (
+                          <CheckCircle className="h-3.5 w-3.5" />
+                        ) : stepStatus === 'active' ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          STEP_ICONS_SMALL[step]
+                        )}
+                      </div>
+
+                      <span className={`flex-1 text-sm ${
+                        stepStatus === 'pending' ? 'text-muted-foreground' : 'font-medium'
+                      }`}>
+                        {getStepLabel(step)}
+                      </span>
+
+                      {duration !== undefined && (
+                        <span className="text-xs text-muted-foreground tabular-nums font-mono">
+                          {formatDuration(duration)}
+                        </span>
+                      )}
+                      {stepStatus === 'active' && (
+                        <span className="text-xs text-primary font-medium">Running</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Step Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-0">
-            {CHECKOUT_STEPS.map((step, index) => {
-              const stepStatus = getStepStatus(step, completedSteps, currentStep);
-              const duration = getStepDuration(step, completedSteps);
-              const isLast = index === CHECKOUT_STEPS.length - 1;
+      <div className="hidden sm:block">
+        <Card>
+          <CardContent className="py-5 px-6">
+            <div className="flex items-center">
+              {CHECKOUT_STEPS.map((step, index) => {
+                const stepStatus = getStepStatus(step, completedSteps, currentStep);
+                const isLast = index === CHECKOUT_STEPS.length - 1;
 
-              return (
-                <div key={step} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`
-                        w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all
-                        ${stepStatus === 'completed' ? 'bg-success text-white' : ''}
-                        ${stepStatus === 'active' ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' : ''}
-                        ${stepStatus === 'pending' ? 'bg-muted text-muted-foreground' : ''}
-                      `}
-                    >
-                      {stepStatus === 'completed' ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : stepStatus === 'active' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        STEP_ICONS[step] ?? <span className="text-xs">{index + 1}</span>
-                      )}
+                return (
+                  <div key={step} className="flex items-center flex-1 last:flex-none">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div
+                        className={`
+                          w-8 h-8 rounded-full flex items-center justify-center transition-all
+                          ${stepStatus === 'completed' ? 'bg-success text-white' : ''}
+                          ${stepStatus === 'active' ? 'bg-primary text-primary-foreground ring-4 ring-primary/15 scale-110' : ''}
+                          ${stepStatus === 'pending' ? 'bg-muted text-muted-foreground' : ''}
+                        `}
+                      >
+                        {stepStatus === 'completed' ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : stepStatus === 'active' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          STEP_ICONS_SMALL[step]
+                        )}
+                      </div>
+                      <span className={`text-[10px] leading-tight text-center max-w-[60px] ${
+                        stepStatus === 'pending' ? 'text-muted-foreground' : 'font-medium'
+                      }`}>
+                        {getStepLabel(step)}
+                      </span>
                     </div>
                     {!isLast && (
-                      <div className={`w-0.5 flex-1 min-h-[24px] transition-colors ${
+                      <div className={`flex-1 h-0.5 mx-1 mt-[-18px] transition-colors ${
                         stepStatus === 'completed' ? 'bg-success' : 'bg-muted'
                       }`} />
                     )}
                   </div>
-
-                  <div className={`flex-1 pb-6 ${isLast ? 'pb-0' : ''}`}>
-                    <div className="flex items-center justify-between min-h-[36px]">
-                      <div>
-                        <p className={`text-sm font-medium ${
-                          stepStatus === 'pending' ? 'text-muted-foreground' : ''
-                        }`}>
-                          {getStepLabel(step)}
-                        </p>
-                        {stepStatus === 'active' && (
-                          <p className="text-xs text-primary mt-0.5">Running...</p>
-                        )}
-                      </div>
-                      <div className="flex-shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {duration !== undefined && (
-                          <Badge variant="outline" className="text-xs font-mono">
-                            {formatDuration(duration)}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {isFailed && status?.error && (
         <Card className="border-destructive">
@@ -227,12 +317,7 @@ export function StatusPage() {
               Redirecting to results...
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="flex-1"
-              size="lg"
-              onClick={() => navigate('/')}
-            >
+            <Button variant="outline" className="flex-1" size="lg" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               New Search
             </Button>
