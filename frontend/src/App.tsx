@@ -1,5 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HomePage } from '@/pages/HomePage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Layout } from '@/components/layout/Layout';
+import { SearchPage } from '@/pages/SearchPage';
+import { StatusPage } from '@/pages/StatusPage';
+import { ResultPage } from '@/pages/ResultPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,7 +17,15 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <HomePage />
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<SearchPage />} />
+            <Route path="/status/:requestId" element={<StatusPage />} />
+            <Route path="/result" element={<ResultPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

@@ -1,36 +1,27 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
-import type { CheckoutRequest, CheckoutResponse } from '@/types';
-import { useState } from 'react';
+import type { Product } from '@/types';
 
-export function useCheckout() {
-  const [result, setResult] = useState<CheckoutResponse | null>(null);
+export function useBuy() {
+  const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: (request: CheckoutRequest) => apiClient.checkout(request),
+    mutationFn: (product: Product) => apiClient.buy({ product, quantity: 1 }),
     onSuccess: (response) => {
-      if (response.success && response.data) {
-        setResult(response.data);
+      if (response.data?.requestId) {
+        navigate(`/status/${response.data.requestId}`);
       }
     },
   });
 
-  const checkout = (request: CheckoutRequest) => {
-    mutation.mutate(request);
-  };
-
-  const reset = () => {
-    setResult(null);
-    mutation.reset();
+  const buy = (product: Product) => {
+    mutation.mutate(product);
   };
 
   return {
-    checkout,
-    reset,
-    result,
+    buy,
     isLoading: mutation.isPending,
     error: mutation.error?.message ?? null,
-    requestId: mutation.data?.meta.requestId ?? null,
-    isSuccess: mutation.isSuccess && result !== null,
   };
 }

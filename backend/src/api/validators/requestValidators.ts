@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
-import { SearchRequestSchema, CheckoutRequestSchema } from '../../domain/validators/schemas';
+import {
+  SearchRequestSchema,
+  BuyRequestSchema,
+} from '../../domain/validators/schemas';
 
 export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -17,4 +20,4 @@ export function validateBody<T>(schema: ZodSchema<T>) {
 }
 
 export const validateSearchRequest = validateBody(SearchRequestSchema);
-export const validateCheckoutRequest = validateBody(CheckoutRequestSchema);
+export const validateBuyRequest = validateBody(BuyRequestSchema);

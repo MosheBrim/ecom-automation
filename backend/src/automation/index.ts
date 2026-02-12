@@ -1,4 +1,4 @@
-export * from './selectors/amazon.selectors';
+export * from './selectors/toolshop.selectors';
 export * from './factories/BrowserFactory';
 export * from './actions/navigationActions';
 export * from './actions/scrapeActions';

@@ -3,7 +3,7 @@ import { CheckoutService } from './CheckoutService';
 import * as checkoutOrchestrator from '../automation/orchestrators/checkoutOrchestrator';
 import type { CheckoutResult } from '../automation/flows/checkoutFlow';
 import { statusTracker } from '../domain/models/AutomationStatus';
-import type { Product, CheckoutRequest } from '../domain/validators/schemas';
+import type { Product } from '../domain/validators/schemas';
 
 vi.mock('../automation/orchestrators/checkoutOrchestrator', () => ({
   executeCheckoutFlow: vi.fn(),
@@ -14,27 +14,14 @@ describe('CheckoutService', () => {
   const testRequestId = 'checkout-test-123';
 
   const mockProduct: Product = {
-    id: 'ASIN001',
+    id: 'PROD001',
     title: 'Test Product',
     price: 29.99,
     currency: 'USD',
-    productUrl: 'https://amazon.com/dp/ASIN001',
-    imageUrl: 'https://amazon.com/images/1.jpg',
-    source: 'amazon',
+    productUrl: 'https://practicesoftwaretesting.com/product/PROD001',
+    imageUrl: 'https://practicesoftwaretesting.com/assets/img/products/1.jpg',
+    source: 'toolshop',
     inStock: true,
-  };
-
-  const mockCheckoutRequest: CheckoutRequest = {
-    productId: 'ASIN001',
-    shippingAddress: {
-      fullName: 'John Doe',
-      addressLine1: '123 Test St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'US',
-    },
-    quantity: 1,
   };
 
   const mockCheckoutResult: CheckoutResult = {
@@ -47,21 +34,23 @@ describe('CheckoutService', () => {
     vi.clearAllMocks();
     service = new CheckoutService();
     statusTracker.delete(testRequestId);
+    statusTracker.create(testRequestId);
 
-    process.env.AMAZON_EMAIL = 'test@example.com';
-    process.env.AMAZON_PASSWORD = 'testpass';
+    process.env.SITE_EMAIL = 'test@example.com';
+    process.env.SITE_PASSWORD = 'testpass';
+    process.env.SHIPPING_STREET = '123 Test St';
+    process.env.SHIPPING_CITY = 'New York';
+    process.env.SHIPPING_STATE = 'NY';
+    process.env.SHIPPING_COUNTRY = 'US';
+    process.env.SHIPPING_POSTAL_CODE = '10001';
+    process.env.PAYMENT_METHOD = 'bank-transfer';
 
     vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mockResolvedValue(mockCheckoutResult);
   });
 
   describe('checkout', () => {
     it('returns successful checkout result', async () => {
-      const result = await service.checkout(
-        mockCheckoutRequest,
-        mockProduct,
-        testRequestId,
-        true
-      );
+      const result = await service.checkout(mockProduct, 1, testRequestId);
 
       expect(result.requestId).toBe(testRequestId);
       expect(result.checkoutResult.success).toBe(true);
@@ -69,33 +58,50 @@ describe('CheckoutService', () => {
     });
 
     it('creates order on successful checkout', async () => {
-      const result = await service.checkout(
-        mockCheckoutRequest,
-        mockProduct,
-        testRequestId,
-        true
-      );
+      const result = await service.checkout(mockProduct, 1, testRequestId);
 
       expect(result.order).not.toBeNull();
       expect(result.order?.product).toEqual(mockProduct);
       expect(result.order?.quantity).toBe(1);
     });
 
-    it('delegates to checkout orchestrator', async () => {
-      await service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true);
+    it('uses default address from environment variables', async () => {
+      await service.checkout(mockProduct, 1, testRequestId);
+
+      const call = vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mock.calls[0];
+      expect(call[0].checkoutRequest.shippingAddress).toEqual({
+        street: '123 Test St',
+        city: 'New York',
+        state: 'NY',
+        country: 'US',
+        postalCode: '10001',
+      });
+    });
+
+    it('uses default payment method from environment variables', async () => {
+      await service.checkout(mockProduct, 1, testRequestId);
+
+      const call = vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mock.calls[0];
+      expect(call[0].checkoutRequest.paymentMethod).toBe('bank-transfer');
+    });
+
+    it('delegates to checkout orchestrator with credentials', async () => {
+      await service.checkout(mockProduct, 1, testRequestId);
 
       expect(checkoutOrchestrator.executeCheckoutFlow).toHaveBeenCalledWith({
-        checkoutRequest: mockCheckoutRequest,
+        checkoutRequest: expect.objectContaining({
+          productId: 'PROD001',
+          quantity: 1,
+        }),
         product: mockProduct,
         credentials: { email: 'test@example.com', password: 'testpass' },
         requestId: testRequestId,
-        dryRun: true,
         onProgress: expect.any(Function),
       });
     });
 
     it('passes progress callback that updates status', async () => {
-      await service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true);
+      await service.checkout(mockProduct, 1, testRequestId);
 
       const call = vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mock.calls[0];
       const onProgress = call[0].onProgress;
@@ -108,24 +114,8 @@ describe('CheckoutService', () => {
       expect(status?.progress).toBe(35);
     });
 
-    it('sets order status to pending in dry run mode', async () => {
-      const result = await service.checkout(
-        mockCheckoutRequest,
-        mockProduct,
-        testRequestId,
-        true
-      );
-
-      expect(result.order?.status).toBe('pending');
-    });
-
-    it('sets order status to completed when not dry run', async () => {
-      const result = await service.checkout(
-        mockCheckoutRequest,
-        mockProduct,
-        testRequestId,
-        false
-      );
+    it('sets order status to completed on success', async () => {
+      const result = await service.checkout(mockProduct, 1, testRequestId);
 
       expect(result.order?.status).toBe('completed');
     });
@@ -137,12 +127,7 @@ describe('CheckoutService', () => {
         error: 'Payment failed',
       });
 
-      const result = await service.checkout(
-        mockCheckoutRequest,
-        mockProduct,
-        testRequestId,
-        true
-      );
+      const result = await service.checkout(mockProduct, 1, testRequestId);
 
       expect(result.order).toBeNull();
       expect(result.checkoutResult.success).toBe(false);
@@ -150,11 +135,20 @@ describe('CheckoutService', () => {
     });
 
     it('updates status to completed on success', async () => {
-      await service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true);
+      await service.checkout(mockProduct, 1, testRequestId);
 
       const status = statusTracker.get(testRequestId);
       expect(status?.currentStep).toBe('completed');
       expect(status?.screenshotPath).toBe('/screenshots/proof.png');
+    });
+
+    it('stores result in status on success', async () => {
+      await service.checkout(mockProduct, 1, testRequestId);
+
+      const status = statusTracker.get(testRequestId);
+      expect(status?.result).toBeDefined();
+      expect(status?.result?.orderTotal).toBe('$29.99');
+      expect(status?.result?.product).toEqual(mockProduct);
     });
 
     it('sets status to failed when checkout result is unsuccessful', async () => {
@@ -164,48 +158,31 @@ describe('CheckoutService', () => {
         error: 'Card declined',
       });
 
-      await service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true);
+      await service.checkout(mockProduct, 1, testRequestId);
 
       const status = statusTracker.get(testRequestId);
       expect(status?.currentStep).toBe('failed');
       expect(status?.error).toBe('Card declined');
     });
 
-    it('sets status to failed when orchestrator throws', async () => {
+    it('handles orchestrator errors gracefully', async () => {
       vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mockRejectedValue(
         new Error('Login failed')
       );
 
-      try {
-        await service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true);
-      } catch {
-        // Expected
-      }
+      const result = await service.checkout(mockProduct, 1, testRequestId);
+
+      expect(result.order).toBeNull();
+      expect(result.checkoutResult.success).toBe(false);
+      expect(result.checkoutResult.error).toBe('Login failed');
 
       const status = statusTracker.get(testRequestId);
       expect(status?.currentStep).toBe('failed');
       expect(status?.error).toBe('Login failed');
     });
 
-    it('propagates orchestrator errors', async () => {
-      vi.mocked(checkoutOrchestrator.executeCheckoutFlow).mockRejectedValue(
-        new Error('Network error')
-      );
-
-      await expect(
-        service.checkout(mockCheckoutRequest, mockProduct, testRequestId, true)
-      ).rejects.toThrow('Network error');
-    });
-
     it('handles multiple quantity in order', async () => {
-      const multiQuantityRequest = { ...mockCheckoutRequest, quantity: 3 };
-
-      const result = await service.checkout(
-        multiQuantityRequest,
-        mockProduct,
-        testRequestId,
-        true
-      );
+      const result = await service.checkout(mockProduct, 3, testRequestId);
 
       expect(result.order?.quantity).toBe(3);
     });

@@ -11,8 +11,8 @@ export interface RetryOptions {
 
 const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'shouldRetry' | 'onRetry'>> = {
   maxAttempts: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
+  initialDelayMs: 500,
+  maxDelayMs: 5000,
   backoffMultiplier: 2,
 };
 

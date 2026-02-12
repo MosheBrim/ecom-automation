@@ -1,5 +1,5 @@
 import { Page } from 'playwright';
-import { AMAZON_SELECTORS } from '../selectors/amazon.selectors';
+import { TOOLSHOP_SELECTORS } from '../selectors/toolshop.selectors';
 import { createLogger } from '../../utils/logger';
 import { withRetry } from '../../utils/withRetry';
 import { navigateToProductPage, navigateToCart } from '../actions/navigationActions';
@@ -18,26 +18,23 @@ export async function addToCart(
 
   await withRetry(
     async () => {
-      await page.waitForSelector(AMAZON_SELECTORS.PRODUCT_PAGE.ADD_TO_CART_BUTTON, {
+      await page.waitForSelector(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.ADD_TO_CART, {
         state: 'visible',
         timeout: 10000,
       });
 
       if (quantity > 1) {
-        const quantitySelector = await page.$(AMAZON_SELECTORS.PRODUCT_PAGE.QUANTITY_SELECT);
-        if (quantitySelector) {
-          await page.selectOption(AMAZON_SELECTORS.PRODUCT_PAGE.QUANTITY_SELECT, String(quantity));
-        }
+        await page.fill(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.QUANTITY_INPUT, String(quantity));
       }
 
-      await page.click(AMAZON_SELECTORS.PRODUCT_PAGE.ADD_TO_CART_BUTTON);
+      await page.click(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.ADD_TO_CART);
 
       await page.waitForFunction(
         (selector) => {
           const element = document.querySelector(selector);
-          return element && element.textContent !== '0';
+          return element && element.textContent?.trim() !== '' && element.textContent?.trim() !== '0';
         },
-        AMAZON_SELECTORS.CART.CART_COUNT,
+        TOOLSHOP_SELECTORS.NAV.CART_QUANTITY,
         { timeout: 10000 }
       );
     },
@@ -50,7 +47,7 @@ export async function addToCart(
 
 export async function verifyCartContents(
   page: Page,
-  expectedProductId: string,
+  expectedProductTitle: string,
   requestId: string
 ): Promise<boolean> {
   const log = createLogger(requestId).withStep('verify_cart');
@@ -58,16 +55,16 @@ export async function verifyCartContents(
 
   await navigateToCart(page, requestId);
 
-  await page.waitForSelector(AMAZON_SELECTORS.CART.CART_ITEMS, {
+  await page.waitForSelector(TOOLSHOP_SELECTORS.CART.PRODUCT_TITLE, {
     state: 'visible',
     timeout: 10000,
   });
 
-  const cartItems = await page.$$(AMAZON_SELECTORS.CART.CART_ITEMS);
+  const cartTitles = await page.$$(TOOLSHOP_SELECTORS.CART.PRODUCT_TITLE);
 
-  for (const item of cartItems) {
-    const asin = await item.getAttribute('data-asin');
-    if (asin === expectedProductId) {
+  for (const titleElement of cartTitles) {
+    const title = await titleElement.textContent();
+    if (title?.includes(expectedProductTitle)) {
       log.success('Cart verified', Date.now() - startTime);
       return true;
     }
@@ -88,14 +85,17 @@ export async function proceedToCheckout(
 
   await withRetry(
     async () => {
-      const checkoutButton = await page.$(AMAZON_SELECTORS.CART.PROCEED_TO_CHECKOUT);
-      if (!checkoutButton) {
-        throw new AutomationError('Checkout button not found', 'proceed_to_checkout', true);
+      const proceedButton = await page.$(TOOLSHOP_SELECTORS.CART.PROCEED_BUTTON);
+      if (!proceedButton) {
+        throw new AutomationError('Proceed button not found in cart', 'proceed_to_checkout', true);
       }
 
-      await checkoutButton.click();
+      await proceedButton.click();
 
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
+      await page.waitForSelector(TOOLSHOP_SELECTORS.CHECKOUT.PROCEED_AFTER_LOGIN, {
+        state: 'visible',
+        timeout: 15000,
+      });
     },
     requestId,
     'proceed_to_checkout'

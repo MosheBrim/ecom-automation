@@ -1,8 +1,10 @@
 import { Page } from 'playwright';
 import { Product } from '../../domain/validators/schemas';
-import { AMAZON_SELECTORS } from '../selectors/amazon.selectors';
+import { TOOLSHOP_SELECTORS } from '../selectors/toolshop.selectors';
 import { createLogger } from '../../utils/logger';
-import { parsePrice } from '../../utils/formatPrice';
+import { extractPriceFromText } from '../../utils/formatPrice';
+
+const TOOLSHOP_BASE_URL = process.env.SITE_URL ?? 'https://practicesoftwaretesting.com';
 
 export async function scrapeSearchResults(
   page: Page,
@@ -12,17 +14,17 @@ export async function scrapeSearchResults(
   const log = createLogger(requestId).withStep('scrape_results');
   const startTime = Date.now();
 
-  await page.waitForSelector(AMAZON_SELECTORS.SEARCH.RESULTS_CONTAINER, {
+  await page.waitForSelector(TOOLSHOP_SELECTORS.PRODUCT_CARD.CONTAINER, {
     state: 'visible',
     timeout: 10000,
   });
 
   const products: Product[] = [];
-  const items = await page.$$(AMAZON_SELECTORS.SEARCH.RESULT_ITEM);
+  const cards = await page.$$(TOOLSHOP_SELECTORS.PRODUCT_CARD.CONTAINER);
 
-  for (const item of items.slice(0, limit)) {
+  for (const card of cards.slice(0, limit)) {
     try {
-      const product = await extractProductFromElement(item, page);
+      const product = await extractProductFromCard(card);
       if (product) {
         products.push(product);
       }
@@ -35,57 +37,48 @@ export async function scrapeSearchResults(
   return products;
 }
 
-async function extractProductFromElement(
-  element: ReturnType<Page['$']> extends Promise<infer T> ? T : never,
-  page: Page
+async function extractProductFromCard(
+  card: ReturnType<Page['$']> extends Promise<infer T> ? T : never
 ): Promise<Product | null> {
-  if (!element) return null;
+  if (!card) return null;
 
-  const asin = await element.getAttribute('data-asin');
-  if (!asin) return null;
+  const href = await card.getAttribute('href');
+  if (!href) return null;
 
-  const titleElement = await element.$(AMAZON_SELECTORS.PRODUCT.TITLE);
-  const title = await titleElement?.textContent();
+  const idMatch = href.match(/\/product\/([^/?#]+)/);
+  const id = idMatch ? idMatch[1] : href;
+
+  const nameElement = await card.$(TOOLSHOP_SELECTORS.PRODUCT_CARD.NAME);
+  const title = await nameElement?.textContent();
   if (!title?.trim()) return null;
 
-  const priceWhole = await element.$(AMAZON_SELECTORS.PRODUCT.PRICE_WHOLE);
-  const priceFraction = await element.$(AMAZON_SELECTORS.PRODUCT.PRICE_FRACTION);
-  const wholeText = await priceWhole?.textContent();
-  const fractionText = await priceFraction?.textContent();
-
-  let price: number | null = null;
-  if (wholeText) {
-    const priceString = `${wholeText.replace(/[^0-9]/g, '')}.${fractionText ?? '00'}`;
-    price = parsePrice(priceString);
-  }
-
+  const priceElement = await card.$(TOOLSHOP_SELECTORS.PRODUCT_CARD.PRICE);
+  const priceText = await priceElement?.textContent();
+  const price = priceText ? extractPriceFromText(priceText) : null;
   if (price === null) return null;
 
-  const linkElement = await element.$(AMAZON_SELECTORS.PRODUCT.LINK);
-  const href = await linkElement?.getAttribute('href');
-  const productUrl = href ? `https://www.amazon.com${href}` : '';
+  const imageElement = await card.$('img');
+  const rawImageUrl = await imageElement?.getAttribute('src');
+  const imageUrl = rawImageUrl
+    ? rawImageUrl.startsWith('http')
+      ? rawImageUrl
+      : `${TOOLSHOP_BASE_URL}/${rawImageUrl.replace(/^\//, '')}`
+    : undefined;
 
-  const imageElement = await element.$(AMAZON_SELECTORS.PRODUCT.IMAGE);
-  const imageUrl = await imageElement?.getAttribute('src');
+  const productUrl = href.startsWith('http') ? href : `${TOOLSHOP_BASE_URL}${href}`;
 
-  const ratingElement = await element.$(AMAZON_SELECTORS.PRODUCT.RATING);
-  const ratingText = await ratingElement?.textContent();
-  const rating = ratingText ? parseFloat(ratingText.split(' ')[0]) : undefined;
-
-  const primeElement = await element.$(AMAZON_SELECTORS.PRODUCT.PRIME_BADGE);
-  const isPrime = primeElement !== null;
+  const outOfStockElement = await card.$(TOOLSHOP_SELECTORS.PRODUCT_CARD.OUT_OF_STOCK);
+  const inStock = outOfStockElement === null;
 
   return {
-    id: asin,
+    id,
     title: title.trim(),
     price,
     currency: 'USD',
     productUrl,
-    imageUrl: imageUrl ?? undefined,
-    source: 'amazon',
-    rating,
-    isPrime,
-    inStock: true,
+    imageUrl,
+    source: 'toolshop',
+    inStock,
   };
 }
 
@@ -96,21 +89,20 @@ export async function scrapeProductDetails(
   const log = createLogger(requestId).withStep('scrape_product_details');
   const startTime = Date.now();
 
-  await page.waitForSelector(AMAZON_SELECTORS.PRODUCT_PAGE.TITLE, {
+  await page.waitForSelector(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.NAME, {
     state: 'visible',
     timeout: 10000,
   });
 
-  const titleElement = await page.$(AMAZON_SELECTORS.PRODUCT_PAGE.TITLE);
+  const titleElement = await page.$(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.NAME);
   const title = await titleElement?.textContent();
 
-  const priceElement = await page.$(AMAZON_SELECTORS.PRODUCT_PAGE.PRICE);
+  const priceElement = await page.$(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.PRICE);
   const priceText = await priceElement?.textContent();
-  const price = priceText ? parsePrice(priceText) : null;
+  const price = priceText ? extractPriceFromText(priceText) : null;
 
-  const stockElement = await page.$(AMAZON_SELECTORS.PRODUCT_PAGE.IN_STOCK);
-  const stockText = await stockElement?.textContent();
-  const inStock = stockText?.toLowerCase().includes('in stock') ?? false;
+  const outOfStockElement = await page.$(TOOLSHOP_SELECTORS.PRODUCT_DETAIL.OUT_OF_STOCK);
+  const inStock = outOfStockElement === null;
 
   log.success('Scraped product details', Date.now() - startTime);
 

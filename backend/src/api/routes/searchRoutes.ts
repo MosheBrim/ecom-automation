@@ -5,19 +5,15 @@ import { SearchRequest } from '../../domain/validators/schemas';
 
 const router = Router();
 
-interface SearchRequestBody extends SearchRequest {
-  selectionStrategy?: 'cheapest' | 'first' | 'highest_rated' | 'best_value';
-}
-
 router.post(
   '/',
   validateSearchRequest,
-  async (req: Request<object, object, SearchRequestBody>, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request<object, object, SearchRequest>, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { selectionStrategy = 'first', ...searchRequest } = req.body;
+      const { selectionStrategy, ...searchParams } = req.body;
 
       const result = await searchService.search(
-        searchRequest,
+        searchParams,
         req.requestId,
         selectionStrategy
       );

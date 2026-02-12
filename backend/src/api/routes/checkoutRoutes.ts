@@ -1,46 +1,36 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { checkoutService } from '../../services/CheckoutService';
-import { validateCheckoutRequest } from '../validators/requestValidators';
-import { CheckoutRequest, Product } from '../../domain/validators/schemas';
-import { ValidationError } from '../../domain/errors/AppError';
+import { statusService } from '../../services/StatusService';
+import { validateBuyRequest } from '../validators/requestValidators';
+import { BuyRequest } from '../../domain/validators/schemas';
+import { createLogger } from '../../utils/logger';
 
 const router = Router();
 
-interface CheckoutRequestBody extends CheckoutRequest {
-  product: Product;
-  dryRun?: boolean;
-}
-
 router.post(
   '/',
-  validateCheckoutRequest,
-  async (req: Request<object, object, CheckoutRequestBody>, res: Response, next: NextFunction): Promise<void> => {
+  validateBuyRequest,
+  async (req: Request<object, object, BuyRequest>, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { product, dryRun = true, ...checkoutRequest } = req.body;
+      const { product, quantity = 1 } = req.body;
+      const log = createLogger(req.requestId);
 
-      if (!product) {
-        throw new ValidationError('Product is required for checkout');
-      }
-
-      const result = await checkoutService.checkout(
-        checkoutRequest,
-        product,
-        req.requestId,
-        dryRun
-      );
+      statusService.createStatus(req.requestId);
 
       res.json({
-        success: result.checkoutResult.success,
-        data: {
-          order: result.order,
-          orderTotal: result.checkoutResult.orderTotal,
-          screenshotPath: result.checkoutResult.screenshotPath,
-        },
+        success: true,
+        data: { requestId: req.requestId },
         meta: {
           requestId: req.requestId,
           timestamp: new Date().toISOString(),
-          dryRun,
         },
+      });
+
+      log.info('Checkout started in background', { productId: product.id });
+
+      checkoutService.checkout(product, quantity, req.requestId).catch((error) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        log.error(`Background checkout failed: ${errorMessage}`);
       });
     } catch (error) {
       next(error);

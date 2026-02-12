@@ -4,23 +4,22 @@ import type { Product, Address } from '../validators/schemas';
 
 describe('OrderBuilder', () => {
   const mockProduct: Product = {
-    id: 'ASIN001',
+    id: 'PROD001',
     title: 'Test Product',
     price: 29.99,
     currency: 'USD',
-    productUrl: 'https://amazon.com/dp/ASIN001',
-    imageUrl: 'https://amazon.com/images/1.jpg',
-    source: 'amazon',
+    productUrl: 'https://practicesoftwaretesting.com/product/PROD001',
+    imageUrl: 'https://practicesoftwaretesting.com/assets/img/products/1.jpg',
+    source: 'toolshop',
     inStock: true,
   };
 
   const mockAddress: Address = {
-    fullName: 'John Doe',
-    addressLine1: '123 Test St',
+    street: '123 Test St',
     city: 'New York',
     state: 'NY',
-    zipCode: '10001',
     country: 'US',
+    postalCode: '10001',
   };
 
   function buildCompleteOrder(): OrderBuilder {

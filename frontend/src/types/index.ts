@@ -5,10 +5,9 @@ export interface Product {
   currency: string;
   productUrl: string;
   imageUrl?: string;
-  source: 'amazon';
+  source: 'toolshop';
   rating?: number;
   reviewCount?: number;
-  isPrime?: boolean;
   inStock: boolean;
 }
 
@@ -21,23 +20,9 @@ export interface SearchRequest {
   selectionStrategy?: 'cheapest' | 'first' | 'highest_rated' | 'best_value';
 }
 
-export interface Address {
-  fullName: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  phone?: string;
-}
-
-export interface CheckoutRequest {
-  productId: string;
-  quantity: number;
-  shippingAddress: Address;
+export interface BuyRequest {
   product: Product;
-  dryRun?: boolean;
+  quantity?: number;
 }
 
 export type AutomationStep =
@@ -50,10 +35,18 @@ export type AutomationStep =
   | 'adding_to_cart'
   | 'checkout'
   | 'filling_shipping'
+  | 'filling_payment'
   | 'confirming_order'
   | 'taking_screenshot'
   | 'completed'
   | 'failed';
+
+export interface StepRecord {
+  step: AutomationStep;
+  startedAt: string;
+  completedAt?: string;
+  duration?: number;
+}
 
 export interface AutomationStatus {
   requestId: string;
@@ -64,6 +57,24 @@ export interface AutomationStatus {
   completedAt?: string;
   error?: string;
   screenshotPath?: string;
+  steps: StepRecord[];
+  result?: CheckoutResult;
+}
+
+export interface CheckoutResult {
+  order: {
+    id: string;
+    totalPrice: number;
+    status: string;
+  } | null;
+  orderTotal?: string;
+  screenshotPath?: string;
+  error?: string;
+  product?: Product;
+}
+
+export interface BuyResponse {
+  requestId: string;
 }
 
 export interface ApiResponse<T> {
@@ -83,14 +94,4 @@ export interface ApiResponse<T> {
 export interface SearchResponse {
   products: Product[];
   selectedProduct: Product | null;
-}
-
-export interface CheckoutResponse {
-  order: {
-    id: string;
-    totalPrice: number;
-    status: string;
-  } | null;
-  orderTotal?: string;
-  screenshotPath?: string;
 }

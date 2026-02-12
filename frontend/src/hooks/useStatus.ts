@@ -34,5 +34,6 @@ export function useStatus(requestId: string | null, options: UseStatusOptions = 
     error: query.error?.message ?? null,
     isCompleted: query.data?.currentStep === 'completed',
     isFailed: query.data?.currentStep === 'failed',
+    isFinished: query.data?.currentStep === 'completed' || query.data?.currentStep === 'failed',
   };
 }

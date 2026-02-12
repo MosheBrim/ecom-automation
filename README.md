@@ -1,29 +1,42 @@
 # ecom-automation
 
-E-commerce automation project using Playwright for web scraping and automated purchasing flow on Amazon.
+E-commerce automation project using Playwright for web scraping and automated purchasing flow on practicesoftwaretesting.com (Toolshop).
 
 ## Overview
 
-This application automates the complete e-commerce flow:
+A web application that automates the complete e-commerce flow. The user searches for products, sees results scraped from the target site, clicks "Buy", and the automation handles everything else (login, cart, shipping, payment, screenshot proof) in the background.
 
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  Search  │───▶│  Scrape  │───▶│  Select  │───▶│   Cart   │───▶│ Checkout │
-│  Query   │    │ Products │    │ Product  │    │   Add    │    │ Complete │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
-                                                                      │
-                                                               ┌──────▼──────┐
-                                                               │ Screenshot  │
-                                                               │   Proof     │
-                                                               └─────────────┘
+User Flow:
+
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Search  │───▶│  Results  │───▶│  Status  │───▶│  Result  │
+│  Query   │    │ + Buy Btn │    │ Timeline │    │ + Proof  │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘
+     UI              UI           Real-time        Final
+                                  Tracking        Summary
+
+Automation (behind the scenes):
+
+┌────────┐  ┌───────┐  ┌──────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐
+│ Browser│─▶│ Login │─▶│ Cart │─▶│ Shipping │─▶│ Payment  │─▶│ Screenshot │
+│  Open  │  │       │  │  Add │  │   Fill   │  │ Confirm  │  │   Proof    │
+└────────┘  └───────┘  └──────┘  └──────────┘  └──────────┘  └────────────┘
 ```
 
-### Features
+### Screens
 
-- **Search**: Enter product query with optional price filter
-- **Results**: View scraped products with images, prices, and details
-- **Status**: Real-time automation progress tracking
-- **Checkout**: Complete purchase flow with screenshot proof
+1. **Search** - Enter product query + optional filters (price range, sort, selection strategy)
+2. **Results** - Grid of scraped products with images, prices, ratings. Each has a "Buy" button
+3. **Status** - Real-time automation timeline showing each step, duration, and progress
+4. **Result** - Order details, automation timeline summary, and screenshot proof
+
+### Key Design Decisions
+
+- **Fully automated checkout** - User only enters search query and clicks Buy. Shipping address and payment details come from environment variables
+- **Headless browser** - Automation runs invisibly in the background (configurable via `HEADLESS` env var)
+- **Async checkout API** - Returns requestId immediately, frontend polls for status updates
+- **Step-by-step tracking** - Each automation step is tracked with timestamps and durations
 
 ---
 
@@ -49,35 +62,30 @@ ecom-automation/
 ├── frontend/                 # React application
 │   └── src/
 │       ├── components/       # UI components
-│       │   ├── ui/          # Generic components
-│       │   └── features/    # Feature components
-│       ├── hooks/           # Custom hooks (logic)
-│       ├── pages/           # Page components
+│       │   ├── ui/          # Generic components (shadcn/ui)
+│       │   ├── features/    # Feature components
+│       │   └── layout/      # Layout wrapper
+│       ├── hooks/           # Custom hooks (useBuy, useSearch, useStatus)
+│       ├── pages/           # Page components (Search, Status, Result)
 │       ├── services/        # API client
 │       ├── types/           # TypeScript types
-│       └── utils/           # Utilities
+│       └── utils/           # Utilities (formatters)
 │
 ├── backend/                  # Express server
 │   └── src/
-│       ├── api/             # HTTP routes
-│       │   ├── routes/
-│       │   ├── middleware/
-│       │   └── validators/
+│       ├── api/             # HTTP routes + validators
 │       ├── services/        # Business logic
-│       ├── automation/      # Playwright
+│       ├── automation/      # Playwright automation
 │       │   ├── selectors/   # DOM selectors
 │       │   ├── actions/     # Page actions
-│       │   ├── flows/       # Complete flows
-│       │   └── factories/   # Browser factory
-│       ├── domain/          # Models & types
-│       │   ├── models/
-│       │   ├── strategies/
-│       │   └── validators/
+│       │   ├── flows/       # Multi-step flows
+│       │   ├── factories/   # Browser factory
+│       │   └── orchestrators/ # Flow orchestrators
+│       ├── domain/          # Models, strategies, validators
 │       └── utils/           # Logger, retry, etc.
 │
-├── screenshots/              # E2E proof screenshots
-├── logs/                     # Application logs
-└── docs/                     # Documentation
+├── screenshots/              # Checkout proof screenshots
+└── logs/                     # Application logs
 ```
 
 ---
@@ -87,7 +95,7 @@ ecom-automation/
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 
 ### Installation
 
@@ -111,10 +119,21 @@ npm install
 ```bash
 # Copy environment template
 cp .env.example .env
-
-# Edit .env with your credentials
-# IMPORTANT: Use a test account, never your personal account!
 ```
+
+Required environment variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SITE_EMAIL` | Toolshop test account email | `customer@practicesoftwaretesting.com` |
+| `SITE_PASSWORD` | Toolshop test account password | `welcome01` |
+| `HEADLESS` | Run browser headless (no UI) | `true` |
+| `SHIPPING_STREET` | Default shipping street | `123 Test Street` |
+| `SHIPPING_CITY` | Default shipping city | `New York` |
+| `SHIPPING_STATE` | Default shipping state | `NY` |
+| `SHIPPING_COUNTRY` | Default shipping country | `US` |
+| `SHIPPING_POSTAL_CODE` | Default shipping postal code | `10001` |
+| `PAYMENT_METHOD` | Default payment method | `bank-transfer` |
 
 ### Running the Application
 
@@ -132,50 +151,33 @@ Open http://localhost:5173 in your browser.
 
 ---
 
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Backend server port | 3001 |
-| `NODE_ENV` | Environment mode | development |
-| `AMAZON_EMAIL` | Amazon test account email | - |
-| `AMAZON_PASSWORD` | Amazon test account password | - |
-| `HEADLESS` | Run browser headless | false |
-| `SLOW_MO` | Slow down automation (ms) | 0 |
-| `DEFAULT_TIMEOUT` | Playwright timeout (ms) | 30000 |
-| `LOG_LEVEL` | Logging level | info |
-| `FRONTEND_URL` | Frontend URL for CORS | http://localhost:5173 |
-
----
-
 ## Automation Flow
 
-### 10 Steps of the Automation
+### 9 Steps of the Checkout Automation
 
 | Step | Description | Key Files |
 |------|-------------|-----------|
-| 1 | Open browser | `BrowserFactory.ts` |
-| 2 | Login (if required) | `loginFlow.ts` |
-| 3 | Navigate to search | `navigationActions.ts` |
-| 4 | Execute search | `searchFlow.ts` |
-| 5 | Scrape results | `scrapeActions.ts` |
-| 6 | Select product | `ProductSelectionStrategy.ts` |
-| 7 | Add to cart | `cartFlow.ts` |
-| 8 | Go to checkout | `checkoutFlow.ts` |
-| 9 | Fill shipping | `checkoutFlow.ts` |
-| 10 | Screenshot proof | `screenshotActions.ts` |
+| 1 | Open headless browser | `BrowserFactory.ts` |
+| 2 | Login to site | `loginFlow.ts` |
+| 3 | Navigate to product page | `navigationActions.ts` |
+| 4 | Add product to cart | `cartFlow.ts` |
+| 5 | Proceed to checkout | `cartFlow.ts` |
+| 6 | Fill shipping address (from .env) | `checkoutFlow.ts` |
+| 7 | Fill payment details (from .env) | `checkoutFlow.ts` |
+| 8 | Confirm order | `checkoutFlow.ts` |
+| 9 | Take screenshot proof | `screenshotActions.ts` |
 
 ### Product Data Format
 
 ```json
 {
-  "id": "B09V3KXJPB",
-  "title": "Example Product Name",
-  "price": 299.99,
+  "id": "01JKAT24YE2QBP2HXMQ02B67HM",
+  "title": "Combination Pliers",
+  "price": 14.15,
   "currency": "USD",
-  "productUrl": "https://amazon.com/dp/B09V3KXJPB",
-  "imageUrl": "https://images-na.ssl-images-amazon.com/...",
-  "source": "amazon"
+  "productUrl": "https://practicesoftwaretesting.com/product/01JKAT24YE2QBP2HXMQ02B67HM",
+  "imageUrl": "https://practicesoftwaretesting.com/assets/img/products/pliers02.jpeg",
+  "source": "toolshop"
 }
 ```
 
@@ -190,10 +192,24 @@ POST /api/search
 Content-Type: application/json
 
 {
-  "query": "laptop",
-  "maxPrice": 1000
+  "query": "pliers",
+  "maxPrice": 50,
+  "selectionStrategy": "cheapest"
 }
 ```
+
+### Buy Product (Async)
+
+```http
+POST /api/checkout
+Content-Type: application/json
+
+{
+  "product": { "id": "...", "title": "...", "price": 14.15, ... }
+}
+```
+
+Returns immediately with `{ requestId }`. Checkout runs in background.
 
 ### Get Automation Status
 
@@ -201,17 +217,7 @@ Content-Type: application/json
 GET /api/status/:requestId
 ```
 
-### Execute Checkout
-
-```http
-POST /api/checkout
-Content-Type: application/json
-
-{
-  "productId": "B09V3KXJPB",
-  "shippingAddress": { ... }
-}
-```
+Returns current step, progress %, step history with durations, and result when completed.
 
 ---
 
@@ -243,12 +249,12 @@ E2E tests produce screenshots in `screenshots/` directory.
 
 ---
 
-## Security Notes
+## Security
 
-- **NEVER** commit `.env` file
-- Use dedicated test accounts
-- All credentials in environment variables
-- Input validation on all endpoints
+- **NEVER** commit `.env` file - contains credentials
+- Use dedicated test accounts only
+- All credentials stored in environment variables
+- Input validation on all endpoints via Zod schemas
 
 ---
 

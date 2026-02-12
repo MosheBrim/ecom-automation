@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import { config } from 'dotenv';
 import path from 'path';
 
-config({ path: path.resolve(__dirname, '../../.env') });
+config({ path: path.resolve(__dirname, '../.env') });
 
 import {
   requestIdMiddleware,
@@ -31,6 +31,9 @@ app.use('/api/health', healthRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/status', statusRoutes);
+
+const screenshotsDir = path.resolve(__dirname, '..', '..', process.env.SCREENSHOTS_DIR ?? 'screenshots');
+app.use('/api/screenshots', express.static(screenshotsDir));
 
 app.use(errorHandler);
 

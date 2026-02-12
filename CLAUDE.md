@@ -2,7 +2,7 @@
 
 ## Project Context
 
-E-commerce automation for Amazon: Search → Scrape → Cart → Checkout → Screenshot proof.
+E-commerce automation for practicesoftwaretesting.com (Toolshop): Search → Scrape → Cart → Checkout → Screenshot proof.
 
 ---
 
@@ -58,7 +58,7 @@ Frontend (React)  →  API (Express)  →  Services  →  Automation (Playwright
 | Components | PascalCase | `SearchForm.tsx` |
 | Hooks | usePascalCase | `useSearch.ts` |
 | Services | PascalCaseService | `SearchService.ts` |
-| Selectors | SCREAMING_SNAKE | `AMAZON_SELECTORS` |
+| Selectors | SCREAMING_SNAKE | `TOOLSHOP_SELECTORS` |
 
 ### DRY - Extract When Used Twice
 - `withRetry()` → Retry logic

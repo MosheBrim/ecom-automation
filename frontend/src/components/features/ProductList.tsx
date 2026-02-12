@@ -4,25 +4,28 @@ import type { Product } from '@/types';
 
 interface ProductListProps {
   products: Product[];
-  selectedProduct: Product | null;
-  onSelectProduct: (product: Product) => void;
+  onBuy: (product: Product) => void;
   isLoading: boolean;
+  isBuying: boolean;
 }
 
 export function ProductList({
   products,
-  selectedProduct,
-  onSelectProduct,
+  onBuy,
   isLoading,
+  isBuying,
 }: ProductListProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="space-y-4">
-            <Skeleton className="aspect-square rounded-md" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-lg border bg-card overflow-hidden">
+            <Skeleton className="aspect-square" />
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-9 w-full" />
+            </div>
           </div>
         ))}
       </div>
@@ -30,21 +33,17 @@ export function ProductList({
   }
 
   if (products.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        No products found. Try a different search query.
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {products.map((product) => (
         <ProductCard
           key={product.id}
           product={product}
-          isSelected={selectedProduct?.id === product.id}
-          onSelect={onSelectProduct}
+          onBuy={onBuy}
+          isBuying={isBuying}
         />
       ))}
     </div>

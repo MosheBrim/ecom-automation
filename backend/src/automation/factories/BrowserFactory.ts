@@ -9,7 +9,7 @@ export interface BrowserConfig {
 }
 
 const DEFAULT_CONFIG: BrowserConfig = {
-  headless: process.env.HEADLESS === 'true',
+  headless: process.env.HEADLESS !== 'false',
   slowMo: parseInt(process.env.SLOW_MO ?? '0', 10),
   defaultTimeout: parseInt(process.env.DEFAULT_TIMEOUT ?? '30000', 10),
   viewport: { width: 1920, height: 1080 },

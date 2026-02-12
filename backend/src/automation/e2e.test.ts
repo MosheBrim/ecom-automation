@@ -318,4 +318,122 @@ describe('E2E Automation Tests', () => {
       expect(factory.isConnected()).toBe(true);
     });
   });
+
+  describe('Full E2E Flow Against Live Site', () => {
+    const SITE_URL = process.env.SITE_URL ?? 'https://practicesoftwaretesting.com';
+    const SITE_EMAIL = process.env.SITE_EMAIL ?? 'customer@practicesoftwaretesting.com';
+    const SITE_PASSWORD = process.env.SITE_PASSWORD ?? 'welcome01';
+
+    it('should complete search, add to cart, checkout, and take screenshot proof', async () => {
+      const { page, context } = await factory.createPage();
+
+      try {
+        await page.goto(SITE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        await page.waitForSelector('[data-test="search-query"]', { state: 'visible', timeout: 10000 });
+        await page.fill('[data-test="search-query"]', 'pliers');
+        await page.click('[data-test="search-submit"]');
+
+        const hasResults = await Promise.race([
+          page.waitForSelector('.col-md-9 a.card', { state: 'visible', timeout: 15000 }).then(() => true),
+          page.waitForSelector('[data-test="no-results"]', { state: 'visible', timeout: 15000 }).then(() => false),
+        ]);
+        expect(hasResults).toBe(true);
+
+        const products = await page.$$eval('.col-md-9 a.card', (cards) =>
+          cards.map((card) => ({
+            href: card.getAttribute('href') ?? '',
+            name: card.querySelector('[data-test="product-name"]')?.textContent?.trim() ?? '',
+            price: parseFloat(card.querySelector('[data-test="product-price"]')?.textContent?.replace(/[^0-9.]/g, '') ?? '0'),
+          }))
+        );
+        expect(products.length).toBeGreaterThan(0);
+
+        const cheapest = products.reduce((min, p) => (p.price < min.price ? p : min));
+        expect(cheapest.price).toBeGreaterThan(0);
+
+        const productUrl = cheapest.href.startsWith('http') ? cheapest.href : `${SITE_URL}${cheapest.href}`;
+        await page.goto(productUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        await page.waitForSelector('[data-test="add-to-cart"]', { state: 'visible', timeout: 10000 });
+        await page.click('[data-test="add-to-cart"]');
+
+        await page.waitForFunction(
+          (selector: string) => {
+            const el = document.querySelector(selector);
+            return el && el.textContent?.trim() !== '' && el.textContent?.trim() !== '0';
+          },
+          '[data-test="cart-quantity"]',
+          { timeout: 10000 }
+        );
+
+        await page.goto(`${SITE_URL}/checkout`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        await page.waitForSelector('[data-test="proceed-1"]', { state: 'visible', timeout: 10000 });
+        await page.click('[data-test="proceed-1"]');
+
+        await page.waitForSelector('[data-test="email"]', { state: 'visible', timeout: 15000 });
+
+        const emailInput = page.locator('[data-test="email"]');
+        await emailInput.click();
+        await emailInput.pressSequentially(SITE_EMAIL, { delay: 10 });
+
+        const passwordInput = page.locator('#password');
+        await passwordInput.click();
+        await passwordInput.pressSequentially(SITE_PASSWORD, { delay: 10 });
+
+        await page.click('[data-test="login-submit"]');
+
+        await page.waitForSelector('[data-test="proceed-2"]', { state: 'visible', timeout: 20000 });
+        await page.click('[data-test="proceed-2"]');
+
+        await page.waitForSelector('[data-test="street"]', { state: 'visible', timeout: 10000 });
+
+        const addressFields = [
+          { selector: '[data-test="street"]', value: '123 Test Street' },
+          { selector: '[data-test="city"]', value: 'New York' },
+          { selector: '[data-test="state"]', value: 'NY' },
+          { selector: '[data-test="country"]', value: 'US' },
+          { selector: '[data-test="postal_code"]', value: '10001' },
+        ];
+
+        for (const { selector, value } of addressFields) {
+          const locator = page.locator(selector);
+          await locator.clear();
+          await locator.fill(value);
+        }
+
+        await page.locator('[data-test="postal_code"]').press('Tab');
+
+        await page.waitForSelector('[data-test="proceed-3"]:not([disabled])', {
+          state: 'visible',
+          timeout: 5000,
+        });
+        await page.click('[data-test="proceed-3"]');
+
+        await page.waitForSelector('[data-test="payment-method"]', { state: 'visible', timeout: 10000 });
+        await page.selectOption('[data-test="payment-method"]', 'bank-transfer');
+
+        await page.waitForSelector('[data-test="bank_name"]', { state: 'visible', timeout: 5000 });
+        await page.fill('[data-test="bank_name"]', 'Test Bank');
+        await page.fill('[data-test="account_name"]', 'Test Account');
+        await page.fill('[data-test="account_number"]', '1234567890');
+
+        await page.click('[data-test="finish"]');
+
+        await page.waitForSelector('[data-test="payment-success-message"]', {
+          state: 'visible',
+          timeout: 30000,
+        });
+
+        const successMessage = await page.textContent('[data-test="payment-success-message"]');
+        expect(successMessage).toBeTruthy();
+
+        const screenshotPath = await takeScreenshot(page, 'e2e-full-flow', 'checkout_proof');
+        expect(fs.existsSync(screenshotPath)).toBe(true);
+      } finally {
+        await context.close();
+      }
+    }, 120000);
+  });
 });

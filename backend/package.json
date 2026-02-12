@@ -10,6 +10,7 @@
     "lint": "eslint src --ext .ts",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:e2e": "vitest run src/automation/e2e.test.ts --timeout 120000",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {

@@ -14,34 +14,34 @@ describe('SearchService', () => {
 
   const mockProducts: Product[] = [
     {
-      id: 'ASIN001',
+      id: 'PROD001',
       title: 'Test Product 1',
       price: 29.99,
       currency: 'USD',
-      productUrl: 'https://amazon.com/dp/ASIN001',
-      imageUrl: 'https://amazon.com/images/1.jpg',
-      source: 'amazon',
+      productUrl: 'https://practicesoftwaretesting.com/product/PROD001',
+      imageUrl: 'https://practicesoftwaretesting.com/assets/img/products/1.jpg',
+      source: 'toolshop',
       inStock: true,
     },
     {
-      id: 'ASIN002',
+      id: 'PROD002',
       title: 'Test Product 2',
       price: 19.99,
       currency: 'USD',
-      productUrl: 'https://amazon.com/dp/ASIN002',
-      imageUrl: 'https://amazon.com/images/2.jpg',
-      source: 'amazon',
+      productUrl: 'https://practicesoftwaretesting.com/product/PROD002',
+      imageUrl: 'https://practicesoftwaretesting.com/assets/img/products/2.jpg',
+      source: 'toolshop',
       rating: 4.5,
       inStock: true,
     },
     {
-      id: 'ASIN003',
+      id: 'PROD003',
       title: 'Test Product 3',
       price: 39.99,
       currency: 'USD',
-      productUrl: 'https://amazon.com/dp/ASIN003',
-      imageUrl: 'https://amazon.com/images/3.jpg',
-      source: 'amazon',
+      productUrl: 'https://practicesoftwaretesting.com/product/PROD003',
+      imageUrl: 'https://practicesoftwaretesting.com/assets/img/products/3.jpg',
+      source: 'toolshop',
       rating: 4.8,
       inStock: true,
     },
@@ -77,7 +77,7 @@ describe('SearchService', () => {
       );
 
       expect(result.selectedProduct).not.toBeNull();
-      expect(result.selectedProduct?.id).toBe('ASIN001');
+      expect(result.selectedProduct?.id).toBe('PROD001');
     });
 
     it('selects cheapest product when strategy is cheapest', async () => {
@@ -87,7 +87,7 @@ describe('SearchService', () => {
         'cheapest'
       );
 
-      expect(result.selectedProduct?.id).toBe('ASIN002');
+      expect(result.selectedProduct?.id).toBe('PROD002');
       expect(result.selectedProduct?.price).toBe(19.99);
     });
 
@@ -98,7 +98,7 @@ describe('SearchService', () => {
         'highest_rated'
       );
 
-      expect(result.selectedProduct?.id).toBe('ASIN003');
+      expect(result.selectedProduct?.id).toBe('PROD003');
       expect(result.selectedProduct?.rating).toBe(4.8);
     });
 

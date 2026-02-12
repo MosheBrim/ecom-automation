@@ -1,5 +1,5 @@
 import { Page } from 'playwright';
-import { AMAZON_SELECTORS } from '../selectors/amazon.selectors';
+import { TOOLSHOP_SELECTORS } from '../selectors/toolshop.selectors';
 import { createLogger } from '../../utils/logger';
 import { withRetry } from '../../utils/withRetry';
 import { AutomationError } from '../../domain/errors/AppError';
@@ -9,7 +9,9 @@ export interface LoginCredentials {
   password: string;
 }
 
-export async function loginToAmazon(
+const SITE_URL = process.env.SITE_URL ?? 'https://practicesoftwaretesting.com';
+
+export async function loginToSite(
   page: Page,
   credentials: LoginCredentials,
   requestId: string
@@ -19,36 +21,42 @@ export async function loginToAmazon(
 
   await withRetry(
     async () => {
-      await page.goto('https://www.amazon.com/ap/signin', {
+      await page.goto(`${SITE_URL}/auth/login`, {
         waitUntil: 'domcontentloaded',
+        timeout: 30000,
       });
 
-      await page.waitForSelector(AMAZON_SELECTORS.LOGIN.EMAIL_INPUT, {
-        state: 'visible',
-        timeout: 10000,
-      });
+      const emailInput = page.locator(TOOLSHOP_SELECTORS.LOGIN.EMAIL_INPUT);
+      await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
-      await page.fill(AMAZON_SELECTORS.LOGIN.EMAIL_INPUT, credentials.email);
-      await page.click(AMAZON_SELECTORS.LOGIN.CONTINUE_BUTTON);
+      await emailInput.fill(credentials.email);
 
-      await page.waitForSelector(AMAZON_SELECTORS.LOGIN.PASSWORD_INPUT, {
-        state: 'visible',
-        timeout: 10000,
-      });
+      const passwordInput = page.locator(TOOLSHOP_SELECTORS.LOGIN.PASSWORD_INPUT);
+      await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
+      await passwordInput.fill(credentials.password);
 
-      await page.fill(AMAZON_SELECTORS.LOGIN.PASSWORD_INPUT, credentials.password);
-      await page.click(AMAZON_SELECTORS.LOGIN.SIGN_IN_BUTTON);
+      await page.locator(TOOLSHOP_SELECTORS.LOGIN.SUBMIT_BUTTON).click();
 
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
+      const navigationPromise = page
+        .waitForURL(url => !url.toString().includes('/auth/login'), { timeout: 20000 })
+        .then(() => 'success' as const);
 
-      const captcha = await page.$(AMAZON_SELECTORS.LOGIN.CAPTCHA_IMAGE);
-      if (captcha) {
-        throw new AutomationError('CAPTCHA detected during login', 'login', false);
-      }
+      const errorLocator = page
+        .locator(TOOLSHOP_SELECTORS.LOGIN.ERROR_MESSAGE)
+        .or(page.locator('[data-test="email-error"]'))
+        .or(page.locator('[data-test="password-error"]'));
 
-      const errorMessage = await page.$(AMAZON_SELECTORS.LOGIN.ERROR_MESSAGE);
-      if (errorMessage) {
-        const errorText = await errorMessage.textContent();
+      const errorPromise = errorLocator
+        .waitFor({ state: 'visible', timeout: 20000 })
+        .then(() => 'error' as const);
+
+      navigationPromise.catch(() => {});
+      errorPromise.catch(() => {});
+
+      const result = await Promise.race([navigationPromise, errorPromise]);
+
+      if (result === 'error') {
+        const errorText = await errorLocator.first().textContent();
         throw new AutomationError(
           `Login failed: ${errorText ?? 'Unknown error'}`,
           'login',
@@ -64,11 +72,8 @@ export async function loginToAmazon(
 }
 
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  const accountElement = await page.$(AMAZON_SELECTORS.LOGIN.ACCOUNT_LIST);
-  if (!accountElement) return false;
-
-  const text = await accountElement.textContent();
-  return text !== null && !text.includes('Sign in');
+  const signOutElement = await page.$(TOOLSHOP_SELECTORS.NAV.SIGN_OUT);
+  return signOutElement !== null;
 }
 
 export async function ensureLoggedIn(
@@ -84,5 +89,5 @@ export async function ensureLoggedIn(
     return;
   }
 
-  await loginToAmazon(page, credentials, requestId);
+  await loginToSite(page, credentials, requestId);
 }

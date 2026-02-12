@@ -13,6 +13,15 @@ export function formatDate(date: string | Date): string {
   }).format(d);
 }
 
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
@@ -29,10 +38,26 @@ export function getStepLabel(step: string): string {
     adding_to_cart: 'Adding to Cart',
     checkout: 'Processing Checkout',
     filling_shipping: 'Filling Shipping Info',
+    filling_payment: 'Filling Payment Info',
     confirming_order: 'Confirming Order',
     taking_screenshot: 'Taking Screenshot',
     completed: 'Completed',
     failed: 'Failed',
   };
   return labels[step] ?? step;
+}
+
+export function getStepIcon(step: string): string {
+  const icons: Record<string, string> = {
+    initializing: '1',
+    opening_browser: '2',
+    logging_in: '3',
+    adding_to_cart: '4',
+    checkout: '5',
+    filling_shipping: '6',
+    filling_payment: '7',
+    confirming_order: '8',
+    taking_screenshot: '9',
+  };
+  return icons[step] ?? '?';
 }

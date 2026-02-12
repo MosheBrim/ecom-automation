@@ -2,24 +2,24 @@ import { Page } from 'playwright';
 import { createLogger } from '../../utils/logger';
 import { withRetry } from '../../utils/withRetry';
 
-const AMAZON_BASE_URL = 'https://www.amazon.com';
+const TOOLSHOP_BASE_URL = process.env.SITE_URL ?? 'https://practicesoftwaretesting.com';
 
-export async function navigateToAmazon(
+export async function navigateToHome(
   page: Page,
   requestId: string
 ): Promise<void> {
-  const log = createLogger(requestId).withStep('navigate_to_amazon');
+  const log = createLogger(requestId).withStep('navigate_to_home');
   const startTime = Date.now();
 
   await withRetry(
     async () => {
-      await page.goto(AMAZON_BASE_URL, { waitUntil: 'domcontentloaded' });
+      await page.goto(TOOLSHOP_BASE_URL, { waitUntil: 'domcontentloaded' });
     },
     requestId,
-    'navigate_to_amazon'
+    'navigate_to_home'
   );
 
-  log.success('Navigated to Amazon homepage', Date.now() - startTime);
+  log.success('Navigated to Toolshop homepage', Date.now() - startTime);
 }
 
 export async function navigateToProductPage(
@@ -50,7 +50,7 @@ export async function navigateToCart(
 
   await withRetry(
     async () => {
-      await page.goto(`${AMAZON_BASE_URL}/gp/cart/view.html`, {
+      await page.goto(`${TOOLSHOP_BASE_URL}/checkout`, {
         waitUntil: 'domcontentloaded',
       });
     },
@@ -58,25 +58,5 @@ export async function navigateToCart(
     'navigate_to_cart'
   );
 
-  log.success('Navigated to cart', Date.now() - startTime);
-}
-
-export async function navigateToCheckout(
-  page: Page,
-  requestId: string
-): Promise<void> {
-  const log = createLogger(requestId).withStep('navigate_to_checkout');
-  const startTime = Date.now();
-
-  await withRetry(
-    async () => {
-      await page.goto(`${AMAZON_BASE_URL}/gp/buy/spc/handlers/display.html`, {
-        waitUntil: 'domcontentloaded',
-      });
-    },
-    requestId,
-    'navigate_to_checkout'
-  );
-
-  log.success('Navigated to checkout', Date.now() - startTime);
+  log.success('Navigated to cart/checkout', Date.now() - startTime);
 }

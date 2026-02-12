@@ -35,7 +35,7 @@ Each bug entry follows this structure:
 ### Bug #1: Screenshots Incorrectly Added to .gitignore
 
 **AI Tool:** Claude Code (Claude Opus 4.5)
-**Date:** 2024-02-11
+**Date:** 2026-02-11
 **Severity:** High
 
 **What AI Suggested:**
@@ -59,6 +59,74 @@ screenshots/debug/
 
 **Lesson Learned:**
 Always verify submission requirements before adding files to .gitignore. Proof artifacts must be committed.
+
+---
+
+### Bug #2: CLAUDE.md Too Verbose (~600 Lines)
+
+**AI Tool:** Claude Code (Claude Opus 4.5)
+**Date:** 2026-02-11
+**Severity:** Medium
+
+**What AI Suggested:**
+Created a ~600 line CLAUDE.md with full code examples and implementation patterns:
+```markdown
+## Example: How to implement a service
+```typescript
+export class ExampleService {
+  // Full implementation example...
+}
+```
+```
+
+**Why It Was Wrong:**
+- CLAUDE.md is loaded into the AI context window on every session
+- Large context files waste tokens and slow down responses
+- Full code examples are unnecessary - the AI can infer patterns from rules
+
+**Correct Solution:**
+Reduced to ~117 lines with concise rules only:
+```markdown
+## Code Rules
+- Strict mode - no `any`
+- Explicit return types on all functions
+- Zod for runtime validation
+```
+
+**Lesson Learned:**
+Keep AI context files minimal. Rules and conventions only - no code examples. The AI performs better with concise instructions.
+
+---
+
+### Bug #3: Test Assertions Using instanceof Across Module Boundaries
+
+**AI Tool:** Claude Code (Claude Opus 4.5)
+**Date:** 2026-02-11
+**Severity:** Medium
+
+**What AI Suggested:**
+```typescript
+await expect(withTimeout(slowOp, 50, 'step'))
+  .rejects.toThrow(TimeoutError);
+
+expect(error instanceof AppError).toBe(true);
+```
+
+**Why It Was Wrong:**
+- ESM/CJS module boundary issues cause `instanceof` checks to fail
+- When Vitest transforms modules, class references may differ between the test module and the source module
+- Tests would pass locally but fail in certain configurations
+
+**Correct Solution:**
+```typescript
+await expect(withTimeout(slowOp, 50, 'step'))
+  .rejects.toThrow(/timed out/i);
+
+expect((error as { code: string }).code).toBe('TIMEOUT_ERROR');
+```
+
+**Lesson Learned:**
+Avoid `instanceof` in test assertions for custom error classes. Use regex matching on error messages or check specific properties instead.
 
 ---
 
@@ -96,9 +164,9 @@ Always verify submission requirements before adding files to .gitignore. Proof a
 |----------|-------|-------|
 | Automation | 0 | 0 |
 | Security | 1 | 1 |
-| Architecture | 0 | 0 |
-| TypeScript | 0 | 0 |
-| **Total** | **1** | **1** |
+| Architecture | 1 | 1 |
+| TypeScript | 1 | 1 |
+| **Total** | **3** | **3** |
 
 ---
 
@@ -117,8 +185,6 @@ When you encounter an AI mistake:
 
 ## Summary
 
-[To be filled at project completion]
-
-- Total bugs found: X
-- Most common category: X
-- Key takeaways: X
+- Total bugs found: 3
+- Most common category: Security and Architecture (1 each)
+- Key takeaways: AI excels at generating boilerplate and test code, but requires human oversight for configuration decisions (like .gitignore rules), context optimization (CLAUDE.md size), and cross-module compatibility (instanceof across ESM/CJS boundaries). Always review AI suggestions against project-specific requirements before applying them.

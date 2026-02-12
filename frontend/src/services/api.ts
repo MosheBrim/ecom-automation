@@ -3,8 +3,8 @@ import type {
   ApiResponse,
   SearchRequest,
   SearchResponse,
-  CheckoutRequest,
-  CheckoutResponse,
+  BuyRequest,
+  BuyResponse,
   AutomationStatus,
 } from '@/types';
 
@@ -35,8 +35,8 @@ class ApiClient {
     return response.data;
   }
 
-  async checkout(request: CheckoutRequest): Promise<ApiResponse<CheckoutResponse>> {
-    const response = await this.client.post<ApiResponse<CheckoutResponse>>('/checkout', request);
+  async buy(request: BuyRequest): Promise<ApiResponse<BuyResponse>> {
+    const response = await this.client.post<ApiResponse<BuyResponse>>('/checkout', request);
     return response.data;
   }
 

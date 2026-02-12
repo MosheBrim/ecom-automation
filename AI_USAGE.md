@@ -19,7 +19,7 @@ This document provides full transparency about AI tool usage during the developm
 
 ### Session 1: Project Setup & Architecture
 
-**Date:** [Current Date]
+**Date:** 2026-02-11
 
 **Prompt 1: Understanding the Assignment**
 ```
@@ -182,8 +182,9 @@ expect((error as { code: string }).code).toBe('TIMEOUT_ERROR');
 All sensitive data stored in `.env` file:
 ```bash
 # .env (NOT committed to git)
-AMAZON_EMAIL=test@example.com
-AMAZON_PASSWORD=secretpassword
+SITE_EMAIL=test@example.com
+SITE_PASSWORD=secretpassword
+SITE_URL=https://practicesoftwaretesting.com
 ```
 
 ### 2. Git Configuration
@@ -199,8 +200,8 @@ AMAZON_PASSWORD=secretpassword
 
 Created `.env.example` with placeholder values:
 ```bash
-AMAZON_EMAIL=your-test-email@example.com
-AMAZON_PASSWORD=your-test-password
+SITE_EMAIL=your-test-email@example.com
+SITE_PASSWORD=your-test-password
 ```
 
 ### 4. Code Review Process

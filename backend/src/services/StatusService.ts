@@ -49,6 +49,10 @@ export class StatusService {
     return this.updateStatus(requestId, 'failed', 100, error, screenshotPath);
   }
 
+  setResult(requestId: string, result: Record<string, unknown>): void {
+    statusTracker.setResult(requestId, result);
+  }
+
   cleanupStatus(requestId: string): boolean {
     return statusTracker.delete(requestId);
   }

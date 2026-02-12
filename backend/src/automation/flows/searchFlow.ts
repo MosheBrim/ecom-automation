@@ -1,9 +1,9 @@
 import { Page } from 'playwright';
 import { Product, SearchRequest } from '../../domain/validators/schemas';
-import { AMAZON_SELECTORS } from '../selectors/amazon.selectors';
+import { TOOLSHOP_SELECTORS } from '../selectors/toolshop.selectors';
 import { createLogger } from '../../utils/logger';
 import { withRetry } from '../../utils/withRetry';
-import { navigateToAmazon } from '../actions/navigationActions';
+import { navigateToHome } from '../actions/navigationActions';
 import { scrapeSearchResults } from '../actions/scrapeActions';
 
 export async function executeSearch(
@@ -14,28 +14,42 @@ export async function executeSearch(
   const log = createLogger(requestId).withStep('search');
   const startTime = Date.now();
 
-  await navigateToAmazon(page, requestId);
+  await navigateToHome(page, requestId);
 
-  await withRetry(
+  const hasResults = await withRetry(
     async () => {
-      await page.waitForSelector(AMAZON_SELECTORS.SEARCH.SEARCH_INPUT, {
+      await page.waitForSelector(TOOLSHOP_SELECTORS.SEARCH.QUERY_INPUT, {
         state: 'visible',
         timeout: 10000,
       });
 
-      await page.fill(AMAZON_SELECTORS.SEARCH.SEARCH_INPUT, searchRequest.query);
-      await page.click(AMAZON_SELECTORS.SEARCH.SEARCH_BUTTON);
+      await page.fill(TOOLSHOP_SELECTORS.SEARCH.QUERY_INPUT, searchRequest.query);
+      await page.click(TOOLSHOP_SELECTORS.SEARCH.SUBMIT_BUTTON);
 
-      await page.waitForSelector(AMAZON_SELECTORS.SEARCH.RESULTS_CONTAINER, {
-        state: 'visible',
-        timeout: 15000,
-      });
+      const result = await Promise.race([
+        page
+          .waitForSelector(TOOLSHOP_SELECTORS.PRODUCT_CARD.CONTAINER, {
+            state: 'visible',
+            timeout: 15000,
+          })
+          .then(() => true),
+        page
+          .waitForSelector(TOOLSHOP_SELECTORS.SEARCH.NO_RESULTS, {
+            state: 'visible',
+            timeout: 15000,
+          })
+          .then(() => false),
+      ]);
+
+      return result;
     },
     requestId,
     'search_submit'
   );
 
-  let products = await scrapeSearchResults(page, requestId, searchRequest.limit);
+  let products = hasResults
+    ? await scrapeSearchResults(page, requestId, searchRequest.limit)
+    : [];
 
   if (searchRequest.maxPrice !== undefined) {
     products = products.filter(p => p.price <= searchRequest.maxPrice!);

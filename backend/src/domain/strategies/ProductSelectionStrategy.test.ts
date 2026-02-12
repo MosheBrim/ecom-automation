@@ -13,8 +13,8 @@ const createProduct = (overrides: Partial<Product> = {}): Product => ({
   title: 'Test Product',
   price: 99.99,
   currency: 'USD',
-  productUrl: 'https://amazon.com/product/123',
-  source: 'amazon',
+  productUrl: 'https://practicesoftwaretesting.com/product/test-id',
+  source: 'toolshop',
   inStock: true,
   ...overrides,
 });
