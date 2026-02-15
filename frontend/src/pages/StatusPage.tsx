@@ -127,7 +127,7 @@ export function StatusPage() {
       : 'hsl(var(--primary))';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="grid md:grid-cols-[280px,1fr]">
@@ -251,52 +251,6 @@ export function StatusPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="hidden sm:block">
-        <Card>
-          <CardContent className="py-5 px-6">
-            <div className="flex items-center">
-              {CHECKOUT_STEPS.map((step, index) => {
-                const stepStatus = getStepStatus(step, completedSteps, currentStep);
-                const isLast = index === CHECKOUT_STEPS.length - 1;
-
-                return (
-                  <div key={step} className="flex items-center flex-1 last:flex-none">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div
-                        className={`
-                          w-8 h-8 rounded-full flex items-center justify-center transition-all
-                          ${stepStatus === 'completed' ? 'bg-success text-white' : ''}
-                          ${stepStatus === 'active' ? 'bg-primary text-primary-foreground ring-4 ring-primary/15 scale-110' : ''}
-                          ${stepStatus === 'pending' ? 'bg-muted text-muted-foreground' : ''}
-                        `}
-                      >
-                        {stepStatus === 'completed' ? (
-                          <CheckCircle className="h-4 w-4" />
-                        ) : stepStatus === 'active' ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          STEP_ICONS_SMALL[step]
-                        )}
-                      </div>
-                      <span className={`text-[10px] leading-tight text-center max-w-[60px] ${
-                        stepStatus === 'pending' ? 'text-muted-foreground' : 'font-medium'
-                      }`}>
-                        {getStepLabel(step)}
-                      </span>
-                    </div>
-                    {!isLast && (
-                      <div className={`flex-1 h-0.5 mx-1 mt-[-18px] transition-colors ${
-                        stepStatus === 'completed' ? 'bg-success' : 'bg-muted'
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {isFailed && status?.error && (
         <Card className="border-destructive">

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatDuration, getStepLabel } from '@/utils/formatters';
-import { CheckCircle, XCircle, Image, RefreshCw, Clock, Package, ShoppingBag } from 'lucide-react';
+import { CheckCircle, XCircle, Image, RefreshCw, Clock } from 'lucide-react';
 import type { AutomationStatus } from '@/types';
 
 interface ResultState {
@@ -35,102 +36,70 @@ export function ResultPage() {
     : null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className={`rounded-xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${
+    <div className="space-y-6">
+      <div className={`rounded-lg border px-4 py-3 flex items-center gap-3 ${
         isSuccess ? 'border-success bg-success/5' : 'border-destructive bg-destructive/5'
       }`}>
-        <div className={`rounded-full p-3 ${isSuccess ? 'bg-success/10' : 'bg-destructive/10'}`}>
-          {isSuccess
-            ? <CheckCircle className="h-8 w-8 text-success" />
-            : <XCircle className="h-8 w-8 text-destructive" />
-          }
-        </div>
+        {isSuccess
+          ? <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
+          : <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+        }
         <div className="flex-1">
-          <h1 className="text-xl font-bold">
+          <span className="text-sm font-semibold">
             {isSuccess ? 'Purchase Completed Successfully' : 'Purchase Failed'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isSuccess
-              ? 'The automated checkout completed successfully'
-              : 'There was an issue during the automated checkout'}
-          </p>
+          </span>
         </div>
         {totalDuration !== null && (
-          <Badge variant="secondary" className="text-sm px-3 py-1">
+          <Badge variant="secondary" className="text-xs px-2 py-0.5">
             {formatDuration(totalDuration)}
           </Badge>
         )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-1">
-          {product && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Product
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center text-center gap-3">
-                  {product.imageUrl && (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.title}
-                      className="w-24 h-24 object-contain rounded-lg bg-muted p-2"
-                    />
-                  )}
-                  <div className="space-y-1">
-                    <p className="font-medium leading-tight">{product.title}</p>
-                    <p className="text-2xl font-bold text-primary">{formatPrice(product.price, product.currency)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
+        <div className="flex flex-col gap-6 lg:col-span-1">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {result.orderTotal && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Total</span>
-                  <span className="font-bold text-lg">{result.orderTotal}</span>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                {product?.imageUrl && (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.title}
+                    className="w-16 h-16 object-contain rounded-lg bg-muted p-1.5 flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  {product && (
+                    <p className="font-medium text-sm leading-tight truncate">{product.title}</p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-primary">
+                      {result.orderTotal ?? (product ? formatPrice(product.price, product.currency) : '')}
+                    </span>
+                    <Badge variant={isSuccess ? 'default' : 'destructive'} className="text-[10px] px-1.5 py-0">
+                      {isSuccess ? 'Confirmed' : 'Failed'}
+                    </Badge>
+                  </div>
+                  {result.order?.id && (
+                    <p className="text-[11px] font-mono text-muted-foreground truncate">{result.order.id}</p>
+                  )}
                 </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Status</span>
-                <Badge variant={isSuccess ? 'default' : 'destructive'}>
-                  {isSuccess ? 'Confirmed' : 'Failed'}
-                </Badge>
               </div>
-              {result.order?.id && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Order ID</span>
-                  <span className="text-xs font-mono text-muted-foreground">{result.order.id}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
 
           {status.steps.length > 0 && (
-            <Card>
+            <Card className="lg:flex-1 flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Automation Timeline
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="lg:flex-1 flex flex-col">
+                <div className="lg:flex-1 flex flex-col lg:justify-between gap-2 lg:gap-0">
                   {status.steps.map((step, index) => (
-                    <div key={index} className="flex items-center gap-3 text-sm">
+                    <div key={index} className="flex items-center gap-3 text-sm py-1">
                       <div className="w-5 h-5 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                         <CheckCircle className="h-3 w-3 text-white" />
                       </div>

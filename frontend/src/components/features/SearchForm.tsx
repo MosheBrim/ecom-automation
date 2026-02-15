@@ -13,14 +13,12 @@ interface SearchFormProps {
 }
 
 type SortBy = 'relevance' | 'price_asc' | 'price_desc' | 'rating';
-type SelectionStrategy = 'first' | 'cheapest' | 'highest_rated' | 'best_value';
 
 export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const [query, setQuery] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('relevance');
-  const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>('first');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,7 +31,6 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       sortBy,
       limit: 20,
-      selectionStrategy,
     });
   };
 
@@ -127,20 +124,6 @@ export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="selectionStrategy" className="text-xs text-muted-foreground">Auto-Select Strategy</Label>
-                <Select
-                  id="selectionStrategy"
-                  value={selectionStrategy}
-                  onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)}
-                  disabled={isLoading}
-                >
-                  <option value="first">First Result</option>
-                  <option value="cheapest">Cheapest</option>
-                  <option value="highest_rated">Highest Rated</option>
-                  <option value="best_value">Best Value (Rating/Price)</option>
-                </Select>
-              </div>
             </div>
           )}
 
