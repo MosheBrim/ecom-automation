@@ -1,42 +1,44 @@
 # ecom-automation
 
-E-commerce automation project using Playwright for web scraping and automated purchasing flow on practicesoftwaretesting.com (Toolshop).
+E-commerce automation application using Playwright for automated purchasing on [practicesoftwaretesting.com](https://practicesoftwaretesting.com) (Toolshop).
+
+**Flow:** Search → Scrape Results → Add to Cart → Checkout → Screenshot Proof
+
+---
 
 ## Overview
 
-A web application that automates the complete e-commerce flow. The user searches for products, sees results scraped from the target site, clicks "Buy", and the automation handles everything else (login, cart, shipping, payment, screenshot proof) in the background.
+A web application that automates the complete e-commerce checkout flow on practicesoftwaretesting.com. The user enters a search query, sees scraped product results, and the system handles everything else — login, cart, shipping, payment, and screenshot proof — in the background using a headless browser.
+
+All displayed data comes from the automation layer via DOM scraping — no external API calls.
+
+The application supports two purchase modes:
+
+- **Automatic Mode** (default) — After search results load, the system automatically selects a product based on the chosen strategy (cheapest, first result, or highest rated) and triggers the checkout flow after a configurable delay
+- **Manual Mode** — The user browses the scraped results and clicks "Buy Now" on a specific product to trigger checkout
 
 ```
 User Flow:
 
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  Search  │───▶│  Results  │───▶│  Status  │───▶│  Result  │
-│  Query   │    │ + Buy Btn │    │ Timeline │    │ + Proof  │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
-     UI              UI           Real-time        Final
-                                  Tracking        Summary
+┌──────────┐    ┌──────────────┐    ┌──────────┐    ┌──────────┐
+│  Search  │───▶│   Results    │───▶│  Status  │───▶│  Result  │
+│  Query   │    │ Auto / Manual│    │ Timeline │    │ + Proof  │
+└──────────┘    └──────────────┘    └──────────┘    └──────────┘
 
 Automation (behind the scenes):
 
 ┌────────┐  ┌───────┐  ┌──────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐
-│ Browser│─▶│ Login │─▶│ Cart │─▶│ Shipping │─▶│ Payment  │─▶│ Screenshot │
+│Browser │─▶│ Login │─▶│ Cart │─▶│ Shipping │─▶│ Payment  │─▶│ Screenshot │
 │  Open  │  │       │  │  Add │  │   Fill   │  │ Confirm  │  │   Proof    │
 └────────┘  └───────┘  └──────┘  └──────────┘  └──────────┘  └────────────┘
 ```
 
 ### Screens
 
-1. **Search** - Enter product query + optional filters (price range, sort, selection strategy)
-2. **Results** - Grid of scraped products with images, prices, ratings. Each has a "Buy" button
-3. **Status** - Real-time automation timeline showing each step, duration, and progress
-4. **Result** - Order details, automation timeline summary, and screenshot proof
-
-### Key Design Decisions
-
-- **Fully automated checkout** - User only enters search query and clicks Buy. Shipping address and payment details come from environment variables
-- **Headless browser** - Automation runs invisibly in the background (configurable via `HEADLESS` env var)
-- **Async checkout API** - Returns requestId immediately, frontend polls for status updates
-- **Step-by-step tracking** - Each automation step is tracked with timestamps and durations
+1. **Search** — Enter product query + optional advanced filters (min/max price, sort order). Toggle between Automatic and Manual purchase mode. In automatic mode, select a strategy (cheapest, first result, highest rated)
+2. **Results** — Grid of scraped products with images, prices, ratings, and stock status. In manual mode, each product has a "Buy Now" button. In automatic mode, the best product is purchased after a short delay
+3. **Status** — Real-time automation timeline with a circular progress ring showing percentage, elapsed time, and each step's duration. Steps display green checkmarks (done), spinning indicator (active), or gray dots (pending)
+4. **Result** — Order summary with product details, automation timeline with durations, and screenshot proof of the completed checkout
 
 ---
 
@@ -45,13 +47,14 @@ Automation (behind the scenes):
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | Frontend | React 18 + Vite + TypeScript | User interface |
-| State | TanStack Query | Server state management |
-| Styling | TailwindCSS + shadcn/ui | UI components |
+| State | TanStack Query | Server state management + polling |
+| Styling | TailwindCSS + shadcn/ui | UI components + theming |
+| Icons | Lucide React | Consistent iconography |
 | Backend | Express + TypeScript | API server |
-| Automation | Playwright | Browser control |
-| Validation | Zod | Schema validation |
-| Logging | Winston | Structured logging |
-| Testing | Vitest + Playwright | Unit + E2E tests |
+| Automation | Playwright | Headless browser control + DOM scraping |
+| Validation | Zod | Runtime schema validation |
+| Logging | Winston | Structured logging with requestId tracing |
+| Testing | Vitest + Playwright | Unit, service, and E2E tests |
 
 ---
 
@@ -59,33 +62,33 @@ Automation (behind the scenes):
 
 ```
 ecom-automation/
-├── frontend/                 # React application
+├── frontend/                    # React application
 │   └── src/
-│       ├── components/       # UI components
-│       │   ├── ui/          # Generic components (shadcn/ui)
-│       │   ├── features/    # Feature components
-│       │   └── layout/      # Layout wrapper
-│       ├── hooks/           # Custom hooks (useBuy, useSearch, useStatus)
-│       ├── pages/           # Page components (Search, Status, Result)
-│       ├── services/        # API client
-│       ├── types/           # TypeScript types
-│       └── utils/           # Utilities (formatters)
+│       ├── components/          # UI components
+│       │   ├── ui/             # Generic (shadcn/ui)
+│       │   ├── features/       # Feature components (SearchForm, ProductCard, etc.)
+│       │   └── layout/         # Layout wrapper
+│       ├── hooks/              # Custom hooks (useSearch, useBuy, useStatus)
+│       ├── pages/              # Page components (SearchPage, StatusPage, ResultPage)
+│       ├── services/           # API client
+│       ├── types/              # TypeScript type definitions
+│       └── utils/              # Formatters and helpers
 │
-├── backend/                  # Express server
+├── backend/                     # Express API server
 │   └── src/
-│       ├── api/             # HTTP routes + validators
-│       ├── services/        # Business logic
-│       ├── automation/      # Playwright automation
-│       │   ├── selectors/   # DOM selectors
-│       │   ├── actions/     # Page actions
-│       │   ├── flows/       # Multi-step flows
-│       │   ├── factories/   # Browser factory
-│       │   └── orchestrators/ # Flow orchestrators
-│       ├── domain/          # Models, strategies, validators
-│       └── utils/           # Logger, retry, etc.
+│       ├── api/                # HTTP routes + request validators + middleware
+│       ├── services/           # Business logic (SearchService, CheckoutService, StatusService)
+│       ├── automation/         # Playwright automation
+│       │   ├── selectors/      # Centralized DOM selectors (TOOLSHOP_SELECTORS)
+│       │   ├── actions/        # Atomic page actions (navigate, scrape, screenshot)
+│       │   ├── flows/          # Multi-step flows (login, search, cart, checkout)
+│       │   ├── factories/      # Browser factory (singleton)
+│       │   └── orchestrators/  # Flow coordination (search, checkout)
+│       ├── domain/             # Models, strategies, validators, errors
+│       └── utils/              # Logger, withRetry, withTimeout, formatPrice
 │
-├── screenshots/              # Checkout proof screenshots
-└── logs/                     # Application logs
+├── screenshots/                 # Checkout proof screenshots (committed to git)
+└── logs/                        # Application logs (gitignored)
 ```
 
 ---
@@ -101,7 +104,7 @@ ecom-automation/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ecom-automation.git
+git clone <repository-url>
 cd ecom-automation
 
 # Install backend dependencies
@@ -121,19 +124,30 @@ npm install
 cp .env.example .env
 ```
 
-Required environment variables:
+The `.env.example` file contains the public demo credentials for practicesoftwaretesting.com:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SITE_EMAIL` | Toolshop test account email | `customer@practicesoftwaretesting.com` |
-| `SITE_PASSWORD` | Toolshop test account password | `welcome01` |
-| `HEADLESS` | Run browser headless (no UI) | `true` |
+| Variable | Description | Default Value |
+|----------|-------------|---------------|
+| `PORT` | Backend server port | `3001` |
+| `SITE_EMAIL` | Toolshop demo account | `customer@practicesoftwaretesting.com` |
+| `SITE_PASSWORD` | Toolshop demo password | `welcome01` |
+| `SITE_URL` | Target site URL | `https://practicesoftwaretesting.com` |
+| `HEADLESS` | Run browser without UI | `true` |
+| `SLOW_MO` | Delay between Playwright actions (ms) | `0` |
+| `DEFAULT_TIMEOUT` | Playwright action timeout (ms) | `30000` |
 | `SHIPPING_STREET` | Default shipping street | `123 Test Street` |
 | `SHIPPING_CITY` | Default shipping city | `New York` |
 | `SHIPPING_STATE` | Default shipping state | `NY` |
 | `SHIPPING_COUNTRY` | Default shipping country | `US` |
-| `SHIPPING_POSTAL_CODE` | Default shipping postal code | `10001` |
-| `PAYMENT_METHOD` | Default payment method | `bank-transfer` |
+| `SHIPPING_POSTAL_CODE` | Default postal code | `10001` |
+| `PAYMENT_METHOD` | Payment method | `bank-transfer` |
+| `LOG_LEVEL` | Logging verbosity | `info` |
+| `LOG_FILE` | Log file path | `logs/app.log` |
+| `SCREENSHOTS_DIR` | Screenshot output directory | `screenshots` |
+| `FRONTEND_URL` | CORS origin for frontend | `http://localhost:5173` |
+| `VITE_AUTO_BUY_DELAY_MS` | Auto-buy delay after search (ms) | `1500` |
+
+Supported payment methods: `bank-transfer`, `credit-card`, `cash-on-delivery`.
 
 ### Running the Application
 
@@ -155,19 +169,22 @@ Open http://localhost:5173 in your browser.
 
 ### 9 Steps of the Checkout Automation
 
-| Step | Description | Key Files |
-|------|-------------|-----------|
-| 1 | Open headless browser | `BrowserFactory.ts` |
-| 2 | Login to site | `loginFlow.ts` |
-| 3 | Navigate to product page | `navigationActions.ts` |
-| 4 | Add product to cart | `cartFlow.ts` |
-| 5 | Proceed to checkout | `cartFlow.ts` |
-| 6 | Fill shipping address (from .env) | `checkoutFlow.ts` |
-| 7 | Fill payment details (from .env) | `checkoutFlow.ts` |
-| 8 | Confirm order | `checkoutFlow.ts` |
-| 9 | Take screenshot proof | `screenshotActions.ts` |
+| Step | Name | Description | Key File | Wait Strategy |
+|------|------|-------------|----------|---------------|
+| 1 | `initializing` | Initialize automation context | `CheckoutService.ts` | Instant |
+| 2 | `opening_browser` | Launch headless Chromium | `BrowserFactory.ts` | Browser ready event |
+| 3 | `logging_in` | Login to Toolshop account | `loginFlow.ts` | `waitForSelector` on login form |
+| 4 | `adding_to_cart` | Navigate to product + add to cart | `cartFlow.ts` | `waitForFunction` on cart quantity |
+| 5 | `checkout` | Proceed to checkout wizard | `cartFlow.ts` | `waitForSelector` on proceed button |
+| 6 | `filling_shipping` | Fill shipping address fields | `checkoutFlow.ts` | `waitForSelector` on address form |
+| 7 | `filling_payment` | Select payment method + fill details | `checkoutFlow.ts` | `waitForSelector` on payment form |
+| 8 | `confirming_order` | Confirm order and wait for success | `checkoutFlow.ts` | `waitForSelector` on success message |
+| 9 | `taking_screenshot` | Capture checkout proof screenshot | `screenshotActions.ts` | Page fully loaded |
 
-### Product Data Format
+All selectors are centralized in `automation/selectors/toolshop.selectors.ts`.
+All fragile operations use `withRetry()` with exponential backoff.
+
+### Product Data Format (Normalized)
 
 ```json
 {
@@ -193,8 +210,20 @@ Content-Type: application/json
 
 {
   "query": "pliers",
+  "sortBy": "relevance",
   "maxPrice": 50,
-  "selectionStrategy": "cheapest"
+  "minPrice": 5,
+  "selectionStrategy": "cheapest",
+  "limit": 20
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": { "products": [...], "selectedProduct": {...} },
+  "meta": { "requestId": "...", "timestamp": "...", "totalProducts": 12 }
 }
 ```
 
@@ -205,7 +234,8 @@ POST /api/checkout
 Content-Type: application/json
 
 {
-  "product": { "id": "...", "title": "...", "price": 14.15, ... }
+  "product": { "id": "...", "title": "...", "price": 14.15, ... },
+  "quantity": 1
 }
 ```
 
@@ -221,6 +251,16 @@ Returns current step, progress %, step history with durations, and result when c
 
 ---
 
+## Design Patterns
+
+| Pattern | Usage | File |
+|---------|-------|------|
+| **Strategy** | Product selection (cheapest, first, highest-rated, best-value) | `ProductSelectionStrategy.ts` |
+| **Factory** | Browser instance management (singleton with `getInstance()`) | `BrowserFactory.ts` |
+| **Builder** | Order construction with validation | `Order.ts` |
+
+---
+
 ## Testing
 
 ### Unit Tests
@@ -230,6 +270,8 @@ cd backend
 npm test
 ```
 
+Tests cover: `formatPrice`, `withRetry`, `withTimeout`, `OrderBuilder`, `ProductSelectionStrategy`, `AppError`, `SearchService`, `CheckoutService`, `StatusService`.
+
 ### E2E Tests
 
 ```bash
@@ -237,27 +279,52 @@ cd backend
 npm run test:e2e
 ```
 
-E2E tests produce screenshots in `screenshots/` directory.
+The E2E test runs a **complete flow against the live site** (120s timeout): search "pliers" → select cheapest → navigate to product → add to cart → login with `pressSequentially` → fill shipping address → select bank transfer payment → confirm order → take screenshot proof.
+
+Screenshot proof is saved to `screenshots/`.
+
+### Test Summary
+
+| Category | Test Files | Tests |
+|----------|-----------|-------|
+| Utils (formatPrice, withRetry, withTimeout) | 3 | 34 |
+| Domain (AppError, Order, ProductSelectionStrategy) | 3 | 43 |
+| Services (Search, Checkout, Status) | 3 | 37 |
+| E2E (full automation flow against live site) | 1 | 15 |
+| **Total** | **10** | **129** |
+
+---
+
+## Observability
+
+Every automation step is logged with structured data via Winston:
+
+```
+2026-02-15 09:30:00.123 [INFO] [requestId=abc-123 step=fill_shipping duration=2340ms status=success] Shipping address filled
+```
+
+**Log fields:** `requestId` (trace), `step` (current operation), `duration` (ms), `status` (success/error).
+
+**Transports:** Colorized console + rotating file logs (5MB max, 5 files retained).
+
+The frontend displays a real-time status timeline with a circular progress ring, showing completed steps, current step with spinner, and durations.
 
 ---
 
 ## Documentation
 
-- [CLAUDE.md](./CLAUDE.md) - Project conventions and patterns
-- [AI_USAGE.md](./AI_USAGE.md) - AI tools usage documentation
-- [README_AI_BUGS.md](./README_AI_BUGS.md) - AI mistakes and corrections
+| File | Description |
+|------|-------------|
+| [CLAUDE.md](./CLAUDE.md) | Project conventions and coding standards |
+| [AI_USAGE.md](./AI_USAGE.md) | AI tools usage, prompts, and security measures |
+| [README_AI_BUGS.md](./README_AI_BUGS.md) | AI-generated bugs and corrections |
 
 ---
 
 ## Security
 
-- **NEVER** commit `.env` file - contains credentials
-- Use dedicated test accounts only
-- All credentials stored in environment variables
-- Input validation on all endpoints via Zod schemas
-
----
-
-## License
-
-MIT
+- All credentials stored in `.env` (gitignored) — never hardcoded
+- `.env.example` provides safe default values for the demo site
+- All API input validated with Zod schemas
+- No sensitive data in logs or error messages
+- Screenshots taken only on the confirmation page (no credential fields visible)

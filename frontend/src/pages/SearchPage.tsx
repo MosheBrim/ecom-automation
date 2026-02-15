@@ -12,12 +12,13 @@ import type { Product } from '@/types';
 
 const AUTO_BUY_DELAY_MS = Number(import.meta.env.VITE_AUTO_BUY_DELAY_MS ?? 2000);
 
-type AutoStrategy = 'cheapest' | 'first' | 'highest_rated';
+type AutoStrategy = 'cheapest' | 'first' | 'highest_rated' | 'best_value';
 
 const STRATEGY_LABELS: Record<AutoStrategy, string> = {
   cheapest: 'Cheapest Product',
   first: 'First Result',
   highest_rated: 'Highest Rated',
+  best_value: 'Best Value (Rating/Price)',
 };
 
 function selectProduct(products: Product[], strategy: AutoStrategy): Product | null {
@@ -31,6 +32,15 @@ function selectProduct(products: Product[], strategy: AutoStrategy): Product | n
       return available[0];
     case 'highest_rated':
       return available.reduce((best, p) => ((p.rating ?? 0) > (best.rating ?? 0) ? p : best), available[0]);
+    case 'best_value': {
+      const withRating = available.filter((p) => p.rating !== undefined);
+      const pool = withRating.length > 0 ? withRating : available;
+      return pool.reduce((best, p) => {
+        const bestRatio = (best.rating ?? 0) / best.price;
+        const pRatio = (p.rating ?? 0) / p.price;
+        return pRatio > bestRatio ? p : best;
+      }, pool[0]);
+    }
   }
 }
 

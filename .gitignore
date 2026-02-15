@@ -40,5 +40,5 @@ test-results/
 *.tsbuildinfo
 .eslintcache
 
-# Screenshots - keep proof, ignore debug
-screenshots
+# Screenshots - proof files tracked in git
+screenshots/debug/
