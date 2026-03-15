@@ -27,7 +27,7 @@ export function ResultPage() {
   if (!state?.status?.result) return null;
 
   const { status } = state;
-  const result = status.result;
+  const result = status.result!;
   const product = result.product;
   const isSuccess = result.order !== null;
 

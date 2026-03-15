@@ -42,3 +42,6 @@ test-results/
 
 # Screenshots - proof files tracked in git
 screenshots/debug/
+
+# Generated PDFs
+*.pdf
